@@ -1,0 +1,30 @@
+# CAP
+_out
+*.db
+*.sqlite
+connection.properties
+gen/
+node_modules/
+target/
+dist/
+resources/
+
+# Web IDE, App Studio
+.che/
+.gen/
+
+# MTA
+*_mta_build_tmp
+*.mtar
+mta_archives/
+Makefile*.mta
+
+# Other
+.DS_Store
+*.orig
+*.log
+
+*.iml
+*.flattened-pom.xml
+
+.vscode/launch.json
