@@ -196,12 +196,12 @@ quê:** a view em roteador `sap.m.routing.Router` com `clearControlAggregation: 
 recriada a cada navegação — se os dados fossem carregados no `onInit`, voltar para uma tela já
 visitada mostraria dados desatualizados até o usuário forçar um refresh manual.
 
-## Fluxo padrão de diálogo de criação/edição (form model + discriminador de ação)
+## Fluxo padrão de diálogo de criação/edição (form model + discriminador de ação, CRUD via binding)
 
 ```js
 handleOpenResourceDialog: function (oEvent, sAction) {
-  const oContext = sAction === "edit" ? oEvent.getSource().getBindingContext("main") : null;
-  this.setModel({ action: sAction, form: oContext?.getObject() ?? {} }, "resourceForm");
+  this._oSelectedContext = sAction === "edit" ? oEvent.getSource().getBindingContext("main") : null;
+  this.setModel({ action: sAction, form: this._oSelectedContext?.getObject() ?? {} }, "resourceForm");
   this.onOpenDialog("AddResource");
 },
 handleSaveResource: async function () {
@@ -213,11 +213,17 @@ handleSaveResource: async function () {
 
   this.getView().setBusy(true);
   try {
-    if (action === "add") await models.createResource(form);
-    else await models.editResource(form, form.ID);
+    if (action === "add") {
+      const oListBinding = this.byId("idTableResources").getBinding("items");
+      const oContext = oListBinding.create(form);
+      await this._waitForCreate(oListBinding, oContext); // ver patterns/data-connection.md
+    } else {
+      await Promise.all(
+        Object.keys(form).map((sKey) => this._oSelectedContext.setProperty(sKey, form[sKey]))
+      );
+    }
 
     this.onCloseDialog();
-    await this._fetchResourceData();
   } catch (error) {
     this.customError(this.getI18nText("msg_generic_save_error"), error);
   } finally {
@@ -227,11 +233,13 @@ handleSaveResource: async function () {
 ```
 
 Esse mesmo esqueleto (modelo de formulário transiente com `{action, form}` → `onOpenDialog` →
-validar campos obrigatórios com `utils.validateRequiredInObject` → branch por `action` chamando o
-`models.*` correspondente → fechar diálogo → recarregar a lista, tudo dentro de
-`setBusy(true)/finally setBusy(false)`) se repete em toda tela de criação/edição via diálogo —
-manter os mesmos nomes de passo (`handleOpenXDialog`/`handleSaveX`) para que qualquer novo CRUD
-seja reconhecível de longe.
+validar campos obrigatórios com `utils.validateRequiredInObject` → branch por `action` chamando
+`create`/`setProperty` direto no binding → fechar diálogo) se repete em toda tela de criação/edição
+via diálogo — manter os mesmos nomes de passo (`handleOpenXDialog`/`handleSaveX`) para que qualquer
+novo CRUD seja reconhecível de longe. Detalhe de espera/erro de `create()` (por que precisa de
+`createCompleted` em vez de confiar no retorno) e o motivo de não chamar `refresh()` depois estão em
+[data-connection.md](data-connection.md) — aqui não é reproduzido para não duplicar a mesma
+explicação em dois lugares.
 
 ## Busca em lista: `Filter` client-side sobre o binding, nunca recarregar do backend a cada tecla
 

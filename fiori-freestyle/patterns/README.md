@@ -10,7 +10,7 @@
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [component-and-manifest.md](component-and-manifest.md) | `Component.js` e `manifest.json`: bootstrap da app, dataSources/models por service OData, roteamento, namespace                                                                 |
 | [controllers.md](controllers.md)                       | `BaseController`: acesso a modelos (view/component), navegação, diálogos/popovers via `Fragment`, helpers de mensagem e i18n                                                    |
-| [data-connection.md](data-connection.md)               | Camada `connection/*` e `model/models.js`: wrapper de OData v4 (CRUD via list binding), chamada de actions/functions, cache local de rascunho                                   |
+| [data-connection.md](data-connection.md)               | Two-way data binding sobre `ODataModel` v4: CRUD direto via `ListBinding`/`Context`, chamada de actions/functions, cache local de rascunho                                       |
 | [formatters-and-types.md](formatters-and-types.md)     | `model/formatter.js` e `utils/customTypes.js`: convenções de formatação e `SimpleType` customizado para validação                                                               |
 | [views-and-fragments.md](views-and-fragments.md)       | Convenções de `view/*.view.xml` e `view/fragments/*.fragment.xml`: nomenclatura, bindings nomeados, taxonomia de chaves i18n, geração programática de UI (`utils/factories.js`) |
 

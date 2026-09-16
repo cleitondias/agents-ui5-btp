@@ -22,9 +22,9 @@ Ao começar um projeto novo a partir daqui:
    [patterns/controllers.md](patterns/controllers.md) — nunca lógica de acesso a modelo, navegação
    ou diálogo duplicada em controller de tela; tudo isso é comportamento transversal do
    `BaseController`.
-4. Acesse o backend só através da camada `models.js`/`connection/*` seguindo
-   [patterns/data-connection.md](patterns/data-connection.md) — controllers nunca chamam o
-   `connector` diretamente, sempre por uma função de negócio em `models.js`.
+4. Acesse o backend via two-way data binding do OData v4 seguindo
+   [patterns/data-connection.md](patterns/data-connection.md) — controllers leem/escrevem direto no
+   `ListBinding`/`Context` do binding declarado na view (`create`/`setProperty`/`delete`).
 5. Centralize formatação e validação de binding em `formatter.js`/`customTypes.js` seguindo
    [patterns/formatters-and-types.md](patterns/formatters-and-types.md) — nunca lógica de
    formatação inline no XML.
@@ -42,33 +42,31 @@ Ao estender um projeto existente com uma tela nova, siga esta ordem:
    registrado.
 2. **`webapp/controller/<Feature>.controller.js`** — estenda `BaseController`, seguindo
    [patterns/controllers.md](patterns/controllers.md). Nenhum import direto de
-   `MessageBox`/`formatter`/`utils` — sempre via `this.*`.
-3. **`webapp/model/models.js`** — adicione as funções de negócio que a tela precisa
-   (`getX`/`createX`/...), seguindo [patterns/data-connection.md](patterns/data-connection.md). O
-   controller nunca chama `connection/connector.js` direto.
-4. **`webapp/view/<Feature>.view.xml`** (+ `fragments/` se houver diálogo) — seguindo
+   `MessageBox`/`formatter`/`utils` — sempre via `this.*`. CRUD é feito direto sobre o binding da
+   view (`ListBinding.create`/`Context.setProperty`/`Context.delete`), seguindo
+   [patterns/data-connection.md](patterns/data-connection.md).
+3. **`webapp/view/<Feature>.view.xml`** (+ `fragments/` se houver diálogo) — seguindo
    [patterns/views-and-fragments.md](patterns/views-and-fragments.md): convenção de IDs, chaves
    i18n com o prefixo certo (`btn_`/`msg_`/`toast_`/...).
-5. **`webapp/model/formatter.js`** — só se a tela precisar de formatação de exibição; nunca
+4. **`webapp/model/formatter.js`** — só se a tela precisar de formatação de exibição; nunca
    inline no XML, seguindo [patterns/formatters-and-types.md](patterns/formatters-and-types.md).
 
-Ao terminar, confira que a tela nova reaproveita `BaseController` e `models.js` em vez de
-reimplementar navegação, diálogo ou acesso a modelo.
+Ao terminar, confira que a tela nova reaproveita `BaseController` em vez de reimplementar
+navegação, diálogo ou acesso a modelo, e que o CRUD está no `ListBinding`/`Context` do próprio
+binding da view, não numa camada de acesso a dados paralela.
 
 ## Visão geral da arquitetura de referência
 
 ```
 projeto/
   webapp/
-    Component.js            # bootstrap: init de connector/models, contexto de usuário, router
-    manifest.json            # dataSources/models por service OData, routing, namespace
+    Component.js            # bootstrap: contexto de usuário, router, modelos técnicos
+    manifest.json            # dataSources/models (ODataModel v4) por service OData, routing, namespace
     controller/
       BaseController.js       # comportamento transversal: modelo, navegação, diálogo, i18n, mensagem
-      <Feature>.controller.js # 1 controller por view, extends BaseController
-    connection/
-      connector.js             # wrapper Promise sobre ODataModel (v2 e/ou v4), CRUD genérico
+      <Feature>.controller.js # 1 controller por view, extends BaseController; CRUD via binding two-way
     model/
-      models.js                 # catálogo de operações de negócio (getX/createX/editX/deleteX)
+      models.js                 # helpers que não são CRUD de entidade (device model, etc.)
       formatter.js               # funções puras de formatação, chamadas com o controller como `this`
     utils/
       utils.js                    # helpers puros de array/objeto/validação, sem estado
@@ -86,9 +84,8 @@ projeto/
 
 ### Decisões arquiteturais centrais (detalhes em `patterns/`)
 
-- **Camadas estritas**: View (XML) → Controller (handler fino) → `models.js` (catálogo de
-  operações nomeadas por negócio) → `connection/*` (mecânica OData/fetch crua). Nenhuma camada
-  pula a intermediária.
+- **Two-way data binding direto**: View (XML, declara o binding `/Entity`) ↔ Controller (lê/escreve
+  no `ListBinding`/`Context` do próprio binding — `create`/`setProperty`/`delete`).
 - **`BaseController` como mixin transversal**: acesso a modelo (view vs. component), navegação,
   ciclo de vida de diálogo/popover, mensagens e i18n moram ali — nunca reimplementados por tela.
 - **Um `JSONModel` nomeado por estado de UI**, nunca um modelo único acumulando tudo — o prefixo do

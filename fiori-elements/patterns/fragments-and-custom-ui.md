@@ -126,10 +126,10 @@ linha (o valor é persistido no próximo save do Object Page, não imediatamente
 
 ```js
 handleUploadComplete: function (oEvent) {
-    var file = oEvent.getParameter("files")[0];
-    var reader = new FileReader();
+    const file = oEvent.getParameter("files")[0];
+    const reader = new FileReader();
     reader.onload = function (e) {
-        var mediaType = e.target.result.split(";");
+        const mediaType = e.target.result.split(";");
         oEvent.getSource().getBindingContext().setProperty("filename", oEvent.getParameter("newValue"));
         oEvent.getSource().getBindingContext().setProperty("file", e.target.result.split(",")[1]);
         oEvent.getSource().getBindingContext().setProperty("filetype", mediaType[0].split(":")[1]);
@@ -150,7 +150,7 @@ readAttachments: function (oEvent) {
         method: "GET",
         urlParameters: { attachment_id: this.sAttachmentId, filename: this.sFileName },
         success: function (oData) {
-            var base64 = atob(oData.readAttachments.content);
+            const base64 = atob(oData.readAttachments.content);
             // ... monta Blob e chama FileDownload.save(...)
         }.bind(this),
         error: function () { MessageBox.error("Error reading file"); }.bind(this)

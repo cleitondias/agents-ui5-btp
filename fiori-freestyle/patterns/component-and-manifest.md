@@ -24,36 +24,31 @@ sap.ui.define([
   "sap/ui/core/UIComponent",
   "sap/ui/Device",
   "inetum/mytemplate/model/models",
-  "inetum/mytemplate/connection/connector",
   "sap/ui/model/json/JSONModel"
-], function (UIComponent, Device, models, connector, JSONModel) {
+], function (UIComponent, Device, models, JSONModel) {
   return UIComponent.extend("inetum.mytemplate.Component", {
     metadata: { manifest: "json" },
     init: async function () {
       UIComponent.prototype.init.apply(this, arguments);
 
-      // 1. injeta a referência do Component nos módulos que fazem chamada OData
-      connector.init(this);
-      models.init(this);
-
-      // 2. bootstrap de autenticação/contexto do usuário, antes de liberar a navegação
+      // 1. bootstrap de autenticação/contexto do usuário, antes de liberar a navegação
       await this._initialiseUserContext();
 
-      // 3. inicializa o router só depois do contexto do usuário estar resolvido
+      // 2. inicializa o router só depois do contexto do usuário estar resolvido
       this.getRouter().initialize();
 
-      // 4. modelos técnicos (device, estado de navegação) por último
+      // 3. modelos técnicos (device, estado de navegação) por último
       this.setModel(models.createDeviceModel(), "device");
     }
   });
 });
 ```
 
-**Por quê essa ordem:** `connector`/`models` precisam da referência do Component (`getModel`,
-`getManifestObject().resolveUri`) antes de qualquer chamada de serviço; o contexto do usuário
-(perfil, empresa/tenant selecionado, permissões) normalmente decide o que a primeira rota vai
-renderizar, então resolve-se **antes** de `oRouter.initialize()` — nunca depois, senão a primeira
-view monta com o modelo de usuário ainda vazio.
+**Por quê essa ordem:** o `ODataModel` v4 já é declarado/instanciado pelo `manifest.json`
+(`sap.ui5.models`) e a view acessa seus bindings direto (ver [data-connection.md](data-connection.md)).
+O contexto do usuário (perfil, empresa/tenant selecionado, permissões) normalmente decide o que a
+primeira rota vai renderizar, então resolve-se **antes** de `oRouter.initialize()` — nunca depois,
+senão a primeira view monta com o modelo de usuário ainda vazio.
 
 ## Bootstrap de contexto do usuário: diálogo bloqueante antes da 1ª rota
 
