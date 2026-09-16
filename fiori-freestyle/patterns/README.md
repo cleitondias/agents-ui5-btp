@@ -13,7 +13,6 @@
 | [data-connection.md](data-connection.md)               | Camada `connection/*` e `model/models.js`: wrapper de OData v4 (CRUD via list binding), chamada de actions/functions, cache local de rascunho                                   |
 | [formatters-and-types.md](formatters-and-types.md)     | `model/formatter.js` e `utils/customTypes.js`: convenções de formatação e `SimpleType` customizado para validação                                                               |
 | [views-and-fragments.md](views-and-fragments.md)       | Convenções de `view/*.view.xml` e `view/fragments/*.fragment.xml`: nomenclatura, bindings nomeados, taxonomia de chaves i18n, geração programática de UI (`utils/factories.js`) |
-| [testing.md](testing.md)                               | `test/unit` e `test/integration`: smoke test de controller, jornadas OPA5 com Page Objects                                                                                      |
 
 ## Convenção de idioma
 

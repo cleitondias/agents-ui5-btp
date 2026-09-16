@@ -31,6 +31,30 @@ Ao começar um projeto novo a partir daqui:
 6. Estruture views/fragments seguindo
    [patterns/views-and-fragments.md](patterns/views-and-fragments.md) — convenção de IDs, taxonomia
    de chaves i18n, rodapé de diálogo padrão.
+
+## Adicionar uma tela (feature) nova
+
+Ao estender um projeto existente com uma tela nova, siga esta ordem:
+
+1. **`webapp/manifest.json`** — adicione a rota/target seguindo
+   [patterns/component-and-manifest.md](patterns/component-and-manifest.md), 1:1 route/target. Só
+   adicione `dataSource`/`model` novo se a tela consumir um service OData que ainda não está
+   registrado.
+2. **`webapp/controller/<Feature>.controller.js`** — estenda `BaseController`, seguindo
+   [patterns/controllers.md](patterns/controllers.md). Nenhum import direto de
+   `MessageBox`/`formatter`/`utils` — sempre via `this.*`.
+3. **`webapp/model/models.js`** — adicione as funções de negócio que a tela precisa
+   (`getX`/`createX`/...), seguindo [patterns/data-connection.md](patterns/data-connection.md). O
+   controller nunca chama `connection/connector.js` direto.
+4. **`webapp/view/<Feature>.view.xml`** (+ `fragments/` se houver diálogo) — seguindo
+   [patterns/views-and-fragments.md](patterns/views-and-fragments.md): convenção de IDs, chaves
+   i18n com o prefixo certo (`btn_`/`msg_`/`toast_`/...).
+5. **`webapp/model/formatter.js`** — só se a tela precisar de formatação de exibição; nunca
+   inline no XML, seguindo [patterns/formatters-and-types.md](patterns/formatters-and-types.md).
+
+Ao terminar, confira que a tela nova reaproveita `BaseController` e `models.js` em vez de
+reimplementar navegação, diálogo ou acesso a modelo.
+
 ## Visão geral da arquitetura de referência
 
 ```
