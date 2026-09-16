@@ -1,0 +1,80 @@
+# AGENTS.md — Fiori Freestyle Template (Inetum)
+
+Este diretório é um **template de referência** para apps SAPUI5 Freestyle (não Fiori Elements)
+construídas do zero, pensado como ponto de partida para novos projetos Inetum. Ele carrega um
+conjunto de **padrões de código** consolidados em [`patterns/`](patterns/) — convenções de
+estruturação de controller, acesso a dados OData, formatação, views/fragments e testes a seguir em
+qualquer projeto novo baseado neste template.
+
+**Leia `patterns/` antes de tomar decisões estruturais em um novo projeto** — a maioria das
+perguntas de "como devo organizar X" já tem resposta e justificativa lá.
+
+## Como usar este template
+
+Ao começar um projeto novo a partir daqui:
+
+1. Leia [patterns/README.md](patterns/README.md) — é o índice de todos os padrões.
+2. Configure o bootstrap da app em `Component.js`/`manifest.json` seguindo
+   [patterns/component-and-manifest.md](patterns/component-and-manifest.md) — namespace único
+   `<empresa>.<app>`, um `dataSource`/`model` por service OData consumido, roteamento com
+   `routes`/`targets` pareados 1:1.
+3. Escreva os controllers estendendo um `BaseController` seguindo
+   [patterns/controllers.md](patterns/controllers.md) — nunca lógica de acesso a modelo, navegação
+   ou diálogo duplicada em controller de tela; tudo isso é comportamento transversal do
+   `BaseController`.
+4. Acesse o backend só através da camada `models.js`/`connection/*` seguindo
+   [patterns/data-connection.md](patterns/data-connection.md) — controllers nunca chamam o
+   `connector` diretamente, sempre por uma função de negócio em `models.js`.
+5. Centralize formatação e validação de binding em `formatter.js`/`customTypes.js` seguindo
+   [patterns/formatters-and-types.md](patterns/formatters-and-types.md) — nunca lógica de
+   formatação inline no XML.
+6. Estruture views/fragments seguindo
+   [patterns/views-and-fragments.md](patterns/views-and-fragments.md) — convenção de IDs, taxonomia
+   de chaves i18n, rodapé de diálogo padrão.
+## Visão geral da arquitetura de referência
+
+```
+projeto/
+  webapp/
+    Component.js            # bootstrap: init de connector/models, contexto de usuário, router
+    manifest.json            # dataSources/models por service OData, routing, namespace
+    controller/
+      BaseController.js       # comportamento transversal: modelo, navegação, diálogo, i18n, mensagem
+      <Feature>.controller.js # 1 controller por view, extends BaseController
+    connection/
+      connector.js             # wrapper Promise sobre ODataModel (v2 e/ou v4), CRUD genérico
+    model/
+      models.js                 # catálogo de operações de negócio (getX/createX/editX/deleteX)
+      formatter.js               # funções puras de formatação, chamadas com o controller como `this`
+    utils/
+      utils.js                    # helpers puros de array/objeto/validação, sem estado
+      factories.js                 # geração programática de controles a partir de metadados
+      customTypes.js                # SimpleType customizado para validação de binding
+    view/
+      App.view.xml                  # shell + container de roteamento
+      <Feature>.view.xml             # 1 view por rota
+      fragments/*.fragment.xml        # diálogos/popovers, carregados por nome via Fragment.load
+    i18n/i18n.properties             # taxonomia de prefixo: btn_/msg_/toast_/title_/label_/ph_
+    test/
+      unit/                            # smoke test por controller
+      integration/                      # jornadas OPA5 (Given/When/Then + Page Objects)
+```
+
+### Decisões arquiteturais centrais (detalhes em `patterns/`)
+
+- **Camadas estritas**: View (XML) → Controller (handler fino) → `models.js` (catálogo de
+  operações nomeadas por negócio) → `connection/*` (mecânica OData/fetch crua). Nenhuma camada
+  pula a intermediária.
+- **`BaseController` como mixin transversal**: acesso a modelo (view vs. component), navegação,
+  ciclo de vida de diálogo/popover, mensagens e i18n moram ali — nunca reimplementados por tela.
+- **Um `JSONModel` nomeado por estado de UI**, nunca um modelo único acumulando tudo — o prefixo do
+  binding no XML já diz se o dado vem do backend (`main>`) ou é estado local transiente
+  (`<algumForm>>`).
+- **Diálogos/fragments cacheados por id na instância do controller**, carregados uma vez via
+  `Fragment.load`, nunca recriados a cada abertura.
+
+## Convenção de idioma
+
+Comentários de código e documentação de arquitetura deste template ficam em **português**. Chaves
+de i18n, nomes de arquivo, IDs de controle, namespaces e nomes de classe/método ficam em
+**inglês** (`Resource`, `handleSaveResource`), seguindo a convenção do próprio UI5.
