@@ -13,6 +13,7 @@ Cada template carrega, além do código-base, um conjunto de **padrões de códi
 |---|---|---|
 | [`cap/`](cap/) | Projeto SAP CAP (Cloud Application Programming Model) — modelo de domínio, services OData por perfil de acesso, camada de Business Objects | [`cap/AGENTS.md`](cap/AGENTS.md) |
 | [`fiori-freestyle/`](fiori-freestyle/) | App SAPUI5 Freestyle (não Fiori Elements) — controllers, acesso a dados OData, formatação, views/fragments | [`fiori-freestyle/AGENTS.md`](fiori-freestyle/AGENTS.md) |
+| [`fiori-elements/`](fiori-elements/) | App SAP Fiori Elements v4 (List Report + Object Page gerados) — anotações CDS, manifest, controller extensions, fragments | [`fiori-elements/AGENTS.md`](fiori-elements/AGENTS.md) |
 
 ## Como usar
 
@@ -37,8 +38,18 @@ tooling padrão do SAPUI5.
 3. Abra o agente de IA ali e peça para ele ler o `AGENTS.md` copiado antes de estruturar
    controllers, views e acesso a dados.
 
+### Fiori Elements
+
+1. Gere o projeto normalmente pela tooling padrão (`@sap/generator-fiori-elements`, template List
+   Report Page V4) apontando para o service OData v4 exposto pelo CAP — este diretório não é
+   copiado como projeto base.
+2. Copie apenas [`fiori-elements/patterns/`](fiori-elements/patterns/) e
+   [`fiori-elements/AGENTS.md`](fiori-elements/AGENTS.md) para dentro do projeto gerado.
+3. Abra o agente de IA ali e peça para ele ler o `AGENTS.md` copiado antes de anotar entidades em
+   `annotations.cds` ou criar extensões de controller/fragment.
+
 ## Convenção de idioma
 
-Em ambos os templates, comentários de código e documentação de arquitetura ficam em
+Em todos os templates, comentários de código e documentação de arquitetura ficam em
 **português**; identificadores de código (entidades, campos, classes, métodos, namespaces, IDs)
 ficam em **inglês**, seguindo a convenção do próprio CAP/UI5.
