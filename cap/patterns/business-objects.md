@@ -232,6 +232,58 @@ module.exports = ObjectStore;
 Nunca instanciar o `AWS.S3` diretamente em um BO — sempre via `new ObjectStore()`. Credenciais
 vêm de `process.env.OBJECT_STORE_KEY` (binding de serviço do Cloud Foundry), nunca hardcoded.
 
+## Orquestração entre services CAP: injetar conexões, não chamar `cds.connect.to` dentro do BO
+
+Quando uma operação de negócio precisa combinar dados/ações de mais de um service CAP do próprio
+projeto (ex.: aprovar uma solicitação em `FlowService` e, com isso, gerar um PDF via `PDFService`),
+resolver as conexões no `services.js`/controller e injetá-las no construtor do BO — pelo mesmo
+princípio da injeção de `entities` já usada em toda `*BO`:
+
+```js
+// srv/services.js
+const cds = require("@sap/cds");
+const ApprovalBO = require("./src/model/ApprovalBO");
+
+class FlowService extends cds.ApplicationService {
+  async init() {
+    this.on("UpdateApprovalStatus", async (req) => {
+      const mainSrv = await cds.connect.to("Main");
+      const pdfSrv = await cds.connect.to("PDF");
+
+      const approvalBO = new ApprovalBO({ mainSrv, pdfSrv });
+      return approvalBO.handle(req.data);
+    });
+    return super.init();
+  }
+}
+```
+
+```js
+// srv/src/model/ApprovalBO.js
+module.exports = class ApprovalBO extends BaseBO {
+  #mainSrv;
+  #pdfSrv;
+
+  constructor({ mainSrv, pdfSrv }) {
+    super();
+    this.#mainSrv = mainSrv;
+    this.#pdfSrv = pdfSrv;
+  }
+
+  async handle({ id, status }) {
+    const { Resource } = this.#mainSrv.entities;
+    // ... lógica usando this.#mainSrv e this.#pdfSrv
+  }
+};
+```
+
+**Por quê:** um BO que chama `cds.connect.to("Outro Service")` internamente esconde uma dependência
+externa dentro da lógica de negócio e torna o BO impossível de testar sem subir o service inteiro.
+Injetada via construtor, a dependência fica explícita na assinatura da classe e pode ser trocada por
+um objeto simulado sem tocar no `handle()`. Vale a mesma regra para `db = cds.connect.to("db")`
+quando o BO já recebe outras conexões injetadas — resolver todas no mesmo lugar, não misturar
+conexão injetada com conexão resolvida ad-hoc dentro do método.
+
 ## Internacionalização de mensagens de erro: `@sap/textbundle`
 
 ```js
@@ -251,3 +303,33 @@ Chamadas a serviços externos ficam encapsuladas em um BO próprio (ex.: `Extern
 chamado a partir de uma `action` — nunca dentro do BO da entidade de domínio. Isso mantém a lógica
 de mapeamento externo→interno (ver o tipo "espelho" em [service-layer.md](service-layer.md))
 isolada e substituível sem tocar no BO principal.
+
+### Chamada HTTP via destination do BTP, nunca URL/credencial hardcoded
+
+```js
+// srv/src/model/ExternalSystemBO.js
+const { executeHttpRequest } = require("@sap-cloud-sdk/http-client");
+
+class ExternalSystemBO {
+  async callExternalSystem(payload) {
+    try {
+      const response = await executeHttpRequest(
+        { destinationName: "MY_EXTERNAL_DESTINATION" },
+        { method: "POST", url: "/api/endpoint", data: payload }
+      );
+      return { status: "ok", response };
+    } catch (error) {
+      return { status: "error", error };
+    }
+  }
+}
+```
+
+- `executeHttpRequest` (do `@sap-cloud-sdk/http-client`) sempre resolve a URL/autenticação a partir
+  de um `destinationName` configurado no BTP Destination Service — nunca montar a URL do sistema
+  externo manualmente nem embutir token/credencial no código.
+- O método nunca deixa a chamada HTTP propagar sua própria exceção para o chamador: sempre
+  `try/catch` interno que devolve `{ status: "ok", response }` ou `{ status: "error", error }`. Quem
+  chama decide o que fazer com a falha (tipicamente convertê-la num erro tipado, ver
+  [error-handling.md](error-handling.md)) em vez de deixar o `catch` do wiring em `services.js`
+  transformar qualquer falha de rede num 500 genérico sem contexto.
