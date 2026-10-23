@@ -8,12 +8,13 @@
 #              cap-patterns               docs/patterns/cap/
 #              fiori-elements-patterns    docs/patterns/fiori-elements/
 #              fiori-freestyle-patterns   docs/patterns/fiori-freestyle/
-#   --tools  ferramentas de IA para o `openspec init` (ex.: claude,codex,cursor); sem isto o init
-#            não é corrido e o comando a usar é mostrado no fim
+#   --tools  ferramentas de IA com pasta própria de skills (ex.: claude,cursor), geradas com
+#            `openspec init`; as skills genéricas em .agents/skills/ vêm sempre na base
 #   --name   nome do projeto (kebab-case) que substitui o placeholder `cap-template` do cap-app;
 #            por omissão, o nome da pasta de destino
 #
-# O pack `base` (AGENTS.md, openspec/config.yaml, scripts/oflow.sh) é sempre copiado.
+# O pack `base` (AGENTS.md, openspec/ completo, skills do OpenSpec em .agents/skills/ e
+# scripts/oflow.sh) é sempre copiado.
 # Ficheiros que já existam no destino nunca são sobrescritos: o AGENTS.md recebe as instruções da
 # base no fim, o resto é ignorado e listado.
 
@@ -110,9 +111,9 @@ if [[ -n "$tools" ]]; then
   command -v openspec >/dev/null 2>&1 || die "openspec não está instalado (npm i -g @fission-ai/openspec)."
   # O init mantém o openspec/config.yaml copiado da base e só gera as skills de cada ferramenta.
   openspec init --tools "$tools" --no-animation "$dest" >/dev/null
-  echo "OpenSpec inicializado para: $tools"
+  echo "Skills do OpenSpec geradas também para: $tools"
 else
-  echo "Falta gerar as skills do OpenSpec para o agente da equipa, por exemplo:"
-  echo "  openspec init --tools claude,codex,cursor \"$dest\""
+  echo "Skills do OpenSpec em .agents/skills/ (Codex e agentes que leem .agents/)."
+  echo "Para Claude Code, Cursor e outros com pasta própria: openspec init --tools claude,cursor \"$dest\""
 fi
 echo "Projeto pronto em $dest"

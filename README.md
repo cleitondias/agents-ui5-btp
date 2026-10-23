@@ -11,7 +11,7 @@ projeto, por isso montar um projeto é copiar os packs desejados uns por cima do
 
 | Pack | O que leva para o projeto |
 |---|---|
-| [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/config.yaml` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR) |
+| [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/` (config, `specs/`, `changes/`), skills do OpenSpec em `.agents/skills/` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR) |
 | [`cap-app`](packs/cap-app/) | Código do template SAP CAP — `db/`, `srv/`, `mta.yaml`, `xs-security.json`... (inclui `cap-patterns`) |
 | [`cap-patterns`](packs/cap-patterns/) | [`docs/patterns/cap/`](packs/cap-patterns/docs/patterns/cap/) — modelo de domínio, services por perfil de acesso, Business Objects, erros, estilo |
 | [`fiori-elements-patterns`](packs/fiori-elements-patterns/) | [`docs/patterns/fiori-elements/`](packs/fiori-elements-patterns/docs/patterns/fiori-elements/) — anotações CDS, manifest, controller extensions, fragments |
@@ -41,14 +41,15 @@ O script:
   `--name`);
 - **nunca sobrescreve** ficheiros que já existam no destino: um `AGENTS.md` existente recebe as
   instruções da base no fim; os outros conflitos são listados para revisão manual;
-- com `--tools`, corre `openspec init --tools <ferramentas>`, que gera as skills do OpenSpec para
-  cada agente e mantém o `openspec/config.yaml` da base. Sem `--tools`, mostra o comando a correr.
+- leva sempre as skills do OpenSpec em `.agents/skills/`, lidas pelo Codex e por agentes que usam
+  `.agents/`; com `--tools claude,cursor` (ferramentas com pasta própria) corre também
+  `openspec init`, que gera as skills dessas ferramentas e mantém o `openspec/config.yaml` da base.
 
 Num projeto Fiori, gera-se primeiro a app pela tooling padrão (`@sap/generator-fiori-elements` ou
 SAP Fiori generator / `@ui5/cli`) e depois aplica-se o pack de padrões por cima.
 
 Sem o script, o equivalente é `cp -R packs/base/. packs/<pack>/. <destino>/`, seguido da troca do
-placeholder e do `openspec init`.
+placeholder (e do `openspec init --tools ...`, se for preciso).
 
 ## Fluxo de trabalho (OpenSpec → branch → MR)
 
@@ -79,6 +80,10 @@ Este repositório usa o mesmo fluxo nas suas próprias alterações: o [`openspe
 [`.agents/`](.agents/) da raiz servem para desenvolver o kit e **não são distribuídos**. O
 [`scripts/oflow.sh`](scripts/oflow.sh) da raiz é um link para o da base, para existir uma única
 versão.
+
+As skills e pastas do OpenSpec em `packs/base/` são geradas pelo `openspec init --tools agents
+packs/base`. Ao atualizar o OpenSpec, regenere-as com `openspec update packs/base` (o
+`config.yaml` é mantido) e não as edite à mão.
 
 Ao alterar um pack, mantenha-o com a estrutura de destino (o que está em `packs/<pack>/` é o que
 aparece na raiz do projeto) e evite links entre packs diferentes — o outro pack pode não estar
