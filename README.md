@@ -6,11 +6,11 @@ Reunir instruções para agentes de IA que apoiam a criação de soluções SAP.
 
 ## Ferramentas
 
-1. **sap-fiori-prototype-builder** - Últimas Atualização foi: 26/10/2026
+### 1. sap-fiori-prototype-builder - Últimas Atualização foi: 26/10/2026
 
-   Agente para criar protótipos navegáveis com aparência e padrões SAP Fiori. Suas instruções estão em [`sap-fiori-prototype-builder/AGENTS-SAP-FIORI-PROTOTYPE-BUILDER.md`](sap-fiori-prototype-builder/AGENTS-SAP-FIORI-PROTOTYPE-BUILDER.md).
+Agente para criar protótipos navegáveis com aparência e padrões SAP Fiori. Suas instruções estão em [`sap-fiori-prototype-builder/AGENTS-SAP-FIORI-PROTOTYPE-BUILDER.md`](sap-fiori-prototype-builder/AGENTS-SAP-FIORI-PROTOTYPE-BUILDER.md).
 
-## Como usar
+#### Como usar
 
 1. Forneça ao agente de IA o arquivo de instruções da ferramenta acima como contexto e descreva o processo de negócio, os usuários, os dados, as regras e as telas desejadas.
 2. Informe, quando o agente perguntar, se o protótipo deve priorizar **Mobile** ou **Desktop**. A escolha define o layout prioritário, mas o resultado deve continuar responsivo.
