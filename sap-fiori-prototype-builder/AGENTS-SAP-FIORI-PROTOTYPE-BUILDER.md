@@ -8,6 +8,13 @@ O consultor funcional deve concentrar-se no processo de negócio, nos usuários,
 
 O resultado deve permitir validação rápida com usuários finais antes do desenvolvimento definitivo em SAPUI5.
 
+## Plataforma prioritária
+
+Antes de criar o protótipo, perguntar ao consultor: **"Este protótipo será feito primariamente para Mobile ou para Desktop?"** Não inferir a resposta a partir dos requisitos. A escolha define o layout prioritário, não limita os dispositivos em que o protótipo deve funcionar.
+
+- **Mobile:** manter as diretrizes atuais de layout adaptável, com conteúdo e ações prioritários acessíveis em telas estreitas, filtros recolhidos em celular e tablet e tabelas largas convertidas em listas, cards ou resumos no celular.
+- **Desktop:** usar a largura disponível de forma mais ampla, com estrutura próxima de um template Fiori convencional: shell e cabeçalho de página, Filter Bar, toolbar e conteúdo principal distribuídos na área de trabalho. Quando o conteúdo justificar, usar tabelas com colunas relevantes, formulários em múltiplas colunas e mestre-detalhe lado a lado; evitar restringir toda a aplicação a uma coluna estreita ou a uma moldura de celular. Manter espaçamento, legibilidade e responsividade em tablet e celular.
+
 ## Idioma
 
 - Usar português do Brasil na interface, nas mensagens e nos dados de exemplo, salvo indicação contrária.
@@ -146,6 +153,8 @@ Toda área de busca e filtros deve ser recolhível para não ocupar permanenteme
 ## Responsividade
 
 Toda aplicação deve ser projetada primeiro para conteúdo adaptável, e não apenas reduzida visualmente.
+
+A plataforma prioritária orienta a composição inicial: em Mobile, conservar o padrão atual voltado a telas estreitas; em Desktop, aproveitar a área horizontal disponível sem sacrificar os comportamentos responsivos abaixo.
 
 ### Comportamento mínimo
 
@@ -331,6 +340,8 @@ Quando a solicitação estiver incompleta, pedir somente informações que afete
 9. Há exemplos de dados, telas atuais ou aplicações Fiori de referência?
 10. O que está explicitamente fora do escopo?
 
+Independentemente de outras lacunas, perguntar antes da implementação se o protótipo é primariamente para Mobile ou Desktop, conforme a seção **Plataforma prioritária**.
+
 Não perguntar ao consultor sobre framework, organização de CSS, breakpoints, bibliotecas, arquitetura JavaScript ou outros detalhes já decididos neste documento.
 
 Se faltarem informações secundárias, usar suposições razoáveis e registrá-las de forma breve no próprio protótipo, em uma seção de ajuda ou informações, sem interromper desnecessariamente o trabalho.
@@ -340,7 +351,7 @@ Se faltarem informações secundárias, usar suposições razoáveis e registrá
 Ao receber um requisito:
 
 1. Interpretar o processo de negócio e identificar lacunas críticas.
-2. Fazer perguntas apenas quando houver decisões funcionais relevantes em aberto.
+2. Perguntar se o protótipo é primariamente para Mobile ou Desktop e esclarecer decisões funcionais relevantes em aberto.
 3. Escolher o padrão Fiori mais adequado.
 4. Definir a hierarquia da informação e o fluxo de navegação.
 5. Criar dados fictícios representativos.
@@ -357,6 +368,7 @@ Antes de considerar o protótipo concluído, confirmar:
 - [ ] O arquivo abre e funciona sem internet e sem servidor.
 - [ ] Não existem dependências externas.
 - [ ] A aparência é coerente com SAP Fiori Horizon.
+- [ ] A plataforma prioritária (Mobile ou Desktop) foi confirmada com o consultor e orienta o layout.
 - [ ] O fluxo principal pode ser demonstrado do início ao fim.
 - [ ] Botões e controles relevantes funcionam.
 - [ ] Os dados são fictícios e plausíveis no contexto SAP.
