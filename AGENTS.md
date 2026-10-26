@@ -1,6 +1,22 @@
 # Instruções para agentes
 
-## Manutenção obrigatória do README
+## Regras de trabalho
+
+### Uma branch por alteração (obrigatório)
+
+**Toda nova alteração deve ser feita numa branch nova e separada. Nunca faça commits diretamente na `dev`.**
+
+1. Parta da `dev` atualizada: `git checkout dev && git pull`.
+2. Crie uma branch com prefixo que descreva o tipo de mudança:
+  - `feat/<descricao>`: funcionalidade nova
+  - `fix/<descricao>`: correção de bug
+  - `docs/<descricao>`: documentação
+  - `refactor/<descricao>`, `chore/<descricao>`: refatoração, manutenção, dependências
+  - Exemplo: `git checkout -b feat/filtro-por-tag`
+3. Uma branch trata **uma** alteração. Não misture mudanças sem relação na mesma branch.
+4. Integre na `dev` só por Pull Reques/Merge Request. 
+
+### Manutenção obrigatória do README
 
 Sempre que uma mudança adicionar, remover, renomear ou alterar uma pasta, ferramenta, skill ou agente deste repositório, atualize também o arquivo `README.md` na mesma tarefa.
 
@@ -21,3 +37,7 @@ Antes de concluir a tarefa:
 3. Inclua a alteração do `README.md` no mesmo conjunto de mudanças.
 
 Uma tarefa que modifica esses itens não deve ser considerada concluída enquanto o `README.md` estiver desatualizado.
+
+### Atualização do campo "Últimas Atualização foi:"
+
+Ao atualizar uma skill/pasta, atualize o campo "Últimas Atualização foi:" no README.md na linha daquela Skill e atualize o mesmo campo "Últimas Atualização foi:" que é geral e está no inicio do arquivo README.md
