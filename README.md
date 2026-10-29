@@ -70,9 +70,38 @@ O que liga as skills do OpenSpec ao fluxo e aos padrões está no `openspec/conf
 `openspec update` sobrescreve-os.
 
 O MR é aberto com o [`glab`](https://gitlab.com/gitlab-org/cli) quando ele está instalado e
-autenticado (`glab auth login --hostname git.pt-ibl-inetum.group`), o que permite usar a
-descrição completa e definir reviewers (`OFLOW_REVIEWERS=joao,maria`). Sem o `glab`, o MR é aberto
-pelas push options do GitLab, sem configuração adicional.
+autenticado, o que permite usar a descrição completa e definir reviewers
+(`OFLOW_REVIEWERS=joao,maria`). Sem o `glab`, o MR é aberto pelas push options do GitLab, sem
+configuração adicional.
+
+### Configurar o `glab`
+
+1. Instale o `glab` (`brew install glab` no macOS; outras plataformas na
+   [documentação](https://gitlab.com/gitlab-org/cli#installation)).
+2. Crie um Personal Access Token em
+   <https://git.pt-ibl-inetum.group/-/user_settings/personal_access_tokens> (*Avatar → Edit
+   profile → Access tokens → Add new token*):
+   - **Token name**: por exemplo `glab`;
+   - **Expiration date**: a que a política da instância permitir;
+   - **Scopes**: `api` e `write_repository` (o `glab` exige pelo menos `api`).
+
+   Copie o token logo após criá-lo — o GitLab não o volta a mostrar.
+3. Autentique o `glab` na instância:
+
+   ```bash
+   glab auth login --hostname git.pt-ibl-inetum.group
+   ```
+
+   Escolha **Token**, cole o token e, como protocolo do git, **HTTPS** (o mesmo do `origin`).
+   Sem interação, o equivalente é:
+
+   ```bash
+   glab auth login --hostname git.pt-ibl-inetum.group --token <token>
+   ```
+
+4. Confirme com `glab auth status --hostname git.pt-ibl-inetum.group`. A partir daqui, o
+   `oflow.sh` passa a abrir o MR pelo `glab` (para forçar um dos modos, use
+   `OFLOW_MR_VIA=glab` ou `OFLOW_MR_VIA=push`).
 
 ## Desenvolver este repositório
 
