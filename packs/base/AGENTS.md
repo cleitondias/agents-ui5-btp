@@ -25,16 +25,17 @@ não exista.
 Cada tarefa é uma change [OpenSpec](https://github.com/Fission-AI/OpenSpec), desenvolvida numa
 branch própria `change/<nome-da-change>` e entregue num Merge Request para review.
 
-1. **Proposta** — skill de propose do OpenSpec: cria `openspec/changes/<nome>/` (proposal, specs,
-   design, tasks).
-2. **Branch** — antes de alterar código: `scripts/oflow.sh start <nome>` (cria a branch a partir da
-   `main` atualizada e commita a proposta).
-3. **Implementação** — skill de apply do OpenSpec, seguindo os padrões acima; commits em
-   Conventional Commits.
-4. **Archive + MR** — skill de archive do OpenSpec e, no fim, `scripts/oflow.sh publish` (commit do
+1. **Proposta + branch** — skill de propose do OpenSpec: cria `openspec/changes/<nome>/` (proposal,
+   specs, design, tasks) e, logo depois de escrever o `tasks.md`, corre
+   `scripts/oflow.sh start <nome>`, que cria a branch a partir da `main` atualizada e commita a
+   proposta. Voltar a correr o `start` na mesma branch só commita as alterações da proposta.
+2. **Implementação** — skill de apply do OpenSpec, seguindo os padrões acima; commits em
+   Conventional Commits. Se a branch atual não for `change/<nome>` (ex.: proposta escrita à mão),
+   o apply corre o `start` antes de alterar código.
+3. **Archive + MR** — skill de archive do OpenSpec e, no fim, `scripts/oflow.sh publish` (commit do
    archive, push e abertura do MR no GitLab).
 
-Sem agente, o passo 4 é `scripts/oflow.sh ship`. A configuração que liga as skills do OpenSpec a
+Sem agente, o passo 3 é `scripts/oflow.sh ship`. A configuração que liga as skills do OpenSpec a
 este fluxo está em `openspec/config.yaml`; os `SKILL.md` gerados pelo `openspec init` não devem ser
 editados, porque o `openspec update` sobrescreve-os.
 

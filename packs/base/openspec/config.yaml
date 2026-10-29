@@ -15,12 +15,13 @@ rules:
   tasks:
     - "Ordena as tasks pela ordem de aplicação do README.md dos padrões da camada (ex.: CAP: schema.cds → services.cds → *BO.js → services.js)."
     - "Termina com uma task de verificação contra o checklist \"Ao terminar\" do README.md dos padrões usados."
+    - "Depois de escrever tasks.md (o último artefacto da proposta), corre `scripts/oflow.sh start <nome-da-change>`: cria a branch change/<nome-da-change> a partir da main atualizada e commita a proposta. Se essa branch já for a atual, o comando só commita as alterações da proposta."
 
 operations:
   apply:
     guidance:
       - "Fluxo do projeto: 1 tarefa = 1 change = 1 branch change/<nome-da-change> = 1 MR."
-      - "Antes de alterar código, confirma que a branch atual é change/<nome-da-change>. Se não for, corre `scripts/oflow.sh start <nome-da-change>` (cria a branch a partir da main atualizada e commita a proposta)."
+      - "A branch change/<nome-da-change> é criada no fim do propose. Antes de alterar código, confirma que é a branch atual; se não for (ex.: proposta escrita à mão), corre `scripts/oflow.sh start <nome-da-change>`."
       - "Faz commit das alterações de código no fim de cada grupo de tasks, usando Conventional Commits."
   archive:
     guidance:

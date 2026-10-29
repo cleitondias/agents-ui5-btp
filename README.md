@@ -60,14 +60,21 @@ nenhum agente específico.
 | Etapa | Com agente | Sem agente |
 |---|---|---|
 | Proposta | skill `openspec-propose` | escrever `openspec/changes/<nome>/` |
-| Branch | automática no início do apply | `scripts/oflow.sh start <nome>` |
+| Branch | automática no fim do propose (corre `oflow.sh start` depois do `tasks.md`) | `scripts/oflow.sh start <nome>` |
 | Implementação | skill `openspec-apply-change` | commits normais |
 | Archive + MR | skill `openspec-archive-change` (corre `oflow.sh publish` no fim) | `scripts/oflow.sh ship` |
 
 O que liga as skills do OpenSpec ao fluxo e aos padrões está no `openspec/config.yaml` da base:
-`context` (ler `docs/patterns/`), `rules` (design e tasks ancorados nos padrões) e `operations`
-(branch no apply, push e MR no archive). Não edite os `SKILL.md` gerados, porque o
-`openspec update` sobrescreve-os.
+`context` (ler `docs/patterns/`), `rules` (design e tasks ancorados nos padrões; a regra de
+`tasks` cria a branch no fim do propose) e `operations` (apply confirma a branch; push e MR no
+archive). Não edite os `SKILL.md` gerados, porque o `openspec update` sobrescreve-os.
+
+A branch nasce no propose, e não no apply, para que a proposta fique commitada e possa ser revista
+(e partilhada) antes de começar a implementação. O OpenSpec só aceita `operations` para `apply` e
+`archive`, e por isso o gatilho é uma regra do último artefacto (`tasks`). O `start` é
+idempotente: na própria branch só commita as alterações da proposta (por exemplo, depois de um
+`openspec-update-change`), e se a branch já existir muda para ela. Para propostas escritas sem a
+skill, o apply continua a correr o `start` antes de alterar código.
 
 O MR é aberto com o [`glab`](https://gitlab.com/gitlab-org/cli) quando ele está instalado e
 autenticado, o que permite usar a descrição completa e definir reviewers

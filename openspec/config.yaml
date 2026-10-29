@@ -20,6 +20,10 @@ context: |
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
 
+rules:
+  tasks:
+    - "Depois de escrever tasks.md (o último artefacto da proposta), corre `scripts/oflow.sh start <nome-da-change>`: cria a branch change/<nome-da-change> a partir da main atualizada e commita a proposta. Se essa branch já for a atual, o comando só commita as alterações da proposta."
+
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.
@@ -36,7 +40,7 @@ operations:
   apply:
     guidance:
       - "Fluxo do projeto: 1 tarefa = 1 change = 1 branch change/<nome-da-change> = 1 MR."
-      - "Antes de alterar código, confirma que a branch atual é change/<nome-da-change>. Se não for, corre `scripts/oflow.sh start <nome-da-change>` (cria a branch a partir da main atualizada e commita a proposta)."
+      - "A branch change/<nome-da-change> é criada no fim do propose. Antes de alterar código, confirma que é a branch atual; se não for (ex.: proposta escrita à mão), corre `scripts/oflow.sh start <nome-da-change>`."
       - "Faz commit das alterações de código no fim de cada grupo de tasks, usando Conventional Commits."
   archive:
     guidance:

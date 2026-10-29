@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # oflow — fluxo "1 tarefa = 1 change OpenSpec = 1 branch = 1 MR".
 #
-#   scripts/oflow.sh start <nome-da-change>   cria a branch change/<nome> a partir da main atualizada
+#   scripts/oflow.sh start <nome-da-change>   no fim do propose: cria a branch change/<nome> a partir
+#                                             da main atualizada e commita a proposta (idempotente)
 #   scripts/oflow.sh publish                  depois do archive: commit, push e abertura do MR
 #   scripts/oflow.sh ship                     sem agente: valida, arquiva (CLI) e corre o publish
 #
@@ -41,21 +42,32 @@ cmd_start() {
   [[ -n "$name" ]] || die "uso: oflow.sh start <nome-da-change>"
   [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || die "o nome deve ser kebab-case (ex.: add-sales-order-approval)."
 
-  # A proposta pode já ter sido escrita antes da branch existir: só se aceitam alterações dentro dela.
-  local dirty
-  dirty="$(git status --porcelain --untracked-files=all | awk '{print $NF}' | grep -v "^openspec/changes/${name}/" || true)"
-  [[ -z "$dirty" ]] || die "há alterações fora de openspec/changes/${name}/ — faz commit ou stash antes:"$'\n'"$dirty"
-
-  git fetch --quiet "$REMOTE" "$BASE_BRANCH"
-  # --no-track: sem isto um `git push` simples iria para a main.
-  git switch --no-track -c "${PREFIX}${name}" "${REMOTE}/${BASE_BRANCH}"
-
-  if [[ -d "openspec/changes/${name}" ]]; then
-    git add "openspec/changes/${name}"
-    git commit --quiet -m "docs(openspec): propose ${name}"
-    echo "Proposta openspec/changes/${name}/ commitada na branch ${PREFIX}${name}."
+  local branch="${PREFIX}${name}" message="docs(openspec): propose ${name}"
+  if [[ "$(git rev-parse --abbrev-ref HEAD)" == "$branch" ]]; then
+    # Corrido de novo (ex.: proposta revista ou apply): só commita o que mudou na proposta.
+    message="docs(openspec): update proposal ${name}"
+  elif git show-ref --verify --quiet "refs/heads/${branch}"; then
+    git switch "$branch"
+    message="docs(openspec): update proposal ${name}"
   else
-    echo "Branch ${PREFIX}${name} criada. Próximo passo: criar a proposta em openspec/changes/${name}/."
+    # A proposta é escrita antes da branch existir: só se aceitam alterações dentro dela.
+    local dirty
+    dirty="$(git status --porcelain --untracked-files=all | awk '{print $NF}' | grep -v "^openspec/changes/${name}/" || true)"
+    [[ -z "$dirty" ]] || die "há alterações fora de openspec/changes/${name}/ — faz commit ou stash antes:"$'\n'"$dirty"
+
+    git fetch --quiet "$REMOTE" "$BASE_BRANCH"
+    # --no-track: sem isto um `git push` simples iria para a main.
+    git switch --no-track -c "$branch" "${REMOTE}/${BASE_BRANCH}"
+  fi
+
+  if [[ -n "$(git status --porcelain --untracked-files=all "openspec/changes/${name}" 2>/dev/null)" ]]; then
+    git add "openspec/changes/${name}"
+    git commit --quiet -m "$message"
+    echo "Proposta openspec/changes/${name}/ commitada na branch ${branch}."
+  elif [[ -d "openspec/changes/${name}" ]]; then
+    echo "Branch ${branch} ativa; a proposta não tem alterações por commitar."
+  else
+    echo "Branch ${branch} criada. Próximo passo: criar a proposta em openspec/changes/${name}/."
   fi
 }
 
@@ -120,5 +132,5 @@ case "${1:-}" in
   start)   shift; cmd_start "$@" ;;
   publish) shift; cmd_publish "$@" ;;
   ship)    shift; cmd_ship "$@" ;;
-  *)       sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *)       sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
