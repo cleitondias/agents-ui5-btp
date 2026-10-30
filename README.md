@@ -25,7 +25,7 @@ de entrada da tecnologia (índice, ordem de aplicação, checklist e arquitetura
 ## Montar um projeto
 
 ```bash
-npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.1.0 \
+npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.1.1 \
   init <destino> --packs <packs> --tools <ferramentas-de-ia>
 ```
 

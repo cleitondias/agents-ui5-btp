@@ -1,6 +1,6 @@
 {
   "name": "@sap-technology/sap-btp-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Monta e atualiza projetos SAP BTP a partir dos packs do kit Inetum",
   "type": "module",
   "bin": {
