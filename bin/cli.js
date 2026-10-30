@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // sap-btp-kit — monta e atualiza projetos a partir dos packs deste repositório.
 import { parseArgs } from 'node:util';
-import { KitError } from '../lib/kit.js';
+import { KitError, VERSION } from '../lib/kit.js';
 import { init } from '../lib/init.js';
 import { update } from '../lib/update.js';
 
 const USAGE = `Uso:
   sap-btp-kit init <destino> [--packs <lista>] [--tools <lista>] [--name <nome>]
   sap-btp-kit update [destino] [--dry-run]
+  sap-btp-kit help
+  sap-btp-kit --version
 
 init    monta (ou complementa) um projeto. Ficheiros existentes nunca são sobrescritos: o
         AGENTS.md recebe as instruções da base no fim, o resto é ignorado e listado.
@@ -24,7 +26,11 @@ init    monta (ou complementa) um projeto. Ficheiros existentes nunca são sobre
 update  aplica a versão instalada do kit a um projeto com .sap-btp-kit.json (por omissão, a pasta
         atual). Ficheiros alterados no projeto nunca são substituídos: em conflito, a nova versão
         fica em <ficheiro>.kit-new. O código do cap-app não é atualizado.
-          --dry-run  só mostra o que mudaria`;
+          --dry-run  só mostra o que mudaria
+
+help    mostra esta ajuda (também com -h ou --help)
+
+-v, --version  mostra a versão do kit`;
 
 const OPTIONS = {
   packs: { type: 'string', default: '' },
@@ -32,17 +38,26 @@ const OPTIONS = {
   name: { type: 'string' },
   'dry-run': { type: 'boolean', default: false },
   help: { type: 'boolean', short: 'h', default: false },
+  version: { type: 'boolean', short: 'v', default: false },
 };
 
 function main() {
   const [command, ...rest] = process.argv.slice(2);
-  if (command === undefined || command === '-h' || command === '--help') {
+  if (command === '-v' || command === '--version') {
+    console.log(VERSION);
+    return 0;
+  }
+  if (command === undefined || ['help', '-h', '--help'].includes(command)) {
     console.log(USAGE);
     return command === undefined ? 1 : 0;
   }
   const { values, positionals } = parseArgs({ args: rest, options: OPTIONS, allowPositionals: true });
   if (values.help) {
     console.log(USAGE);
+    return 0;
+  }
+  if (values.version) {
+    console.log(VERSION);
     return 0;
   }
   if (positionals.length > 1) throw new KitError('só um destino é aceite.');

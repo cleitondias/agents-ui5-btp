@@ -32,6 +32,25 @@ describe('sap-btp-kit', () => {
   });
   afterEach(() => rmSync(root, { recursive: true }));
 
+  it('help lista os comandos', () => {
+    for (const args of [['help'], ['--help'], ['-h'], ['init', '--help']]) {
+      const result = run(...args);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /sap-btp-kit init/);
+      assert.match(result.stdout, /sap-btp-kit update/);
+      assert.match(result.stdout, /sap-btp-kit help/);
+    }
+  });
+
+  it('-v e --version mostram a versão do pacote', () => {
+    const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    for (const flag of ['-v', '--version']) {
+      const result = run(flag);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.trim(), version);
+    }
+  });
+
   describe('init', () => {
     it('monta o cap-app com placeholder, dotfiles e manifesto', () => {
       const result = run('init', dest, '--packs', 'cap-app');

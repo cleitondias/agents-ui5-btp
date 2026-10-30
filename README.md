@@ -36,6 +36,8 @@ A forma curta dos exemplos abaixo, `sap-btp-kit`, vale com o pacote instalado
 `npx` falha com `sap-btp-kit: command not found`, por isso use o atalho ou corra o `npx` noutra pasta.
 No Windows, veja antes [Configurar no Windows](#configurar-no-windows).
 
+Para listar os comandos e as opções, use `sap-btp-kit help`; para ver a versão, `sap-btp-kit -v`.
+
 | Situação | Comando |
 |---|---|
 | Projeto CAP a partir do template | `sap-btp-kit init ../vendas-api --packs cap-app --tools codex` |
