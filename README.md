@@ -7,7 +7,8 @@ template de projeto CAP e fluxo de trabalho com OpenSpec e Merge Requests no Git
 ## Estrutura
 
 O kit é composto por **packs**. Cada pack tem exatamente a estrutura com que fica na raiz do
-projeto, por isso montar um projeto é copiar os packs desejados uns por cima dos outros.
+projeto, por isso montar um projeto é copiar os packs desejados uns por cima dos outros. A CLI
+`sap-btp-kit` faz essa cópia e depois mantém o projeto atualizado com novas versões do kit.
 
 | Pack | O que leva para o projeto |
 |---|---|
@@ -24,17 +25,23 @@ de entrada da tecnologia (índice, ordem de aplicação, checklist e arquitetura
 ## Montar um projeto
 
 ```bash
-scripts/new-project.sh <destino> --packs <packs> --tools <ferramentas-de-ia>
+npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.1.0 \
+  init <destino> --packs <packs> --tools <ferramentas-de-ia>
 ```
+
+A forma curta dos exemplos abaixo, `sap-btp-kit`, vale com o pacote instalado
+(`npm i -g @sap-technology/sap-btp-kit`, publicado no registry do GitLab, com o escopo
+`@sap-technology` configurado no `.npmrc`). A partir de um clone deste repositório,
+`scripts/new-project.sh` é um atalho para o `init`, com os mesmos argumentos.
 
 | Situação | Comando |
 |---|---|
-| Projeto CAP a partir do template | `scripts/new-project.sh ../vendas-api --packs cap-app --tools codex` |
-| Só os padrões, num projeto existente | `scripts/new-project.sh ../meu-projeto --packs cap-patterns` |
-| Fullstack (CAP + Fiori Elements) | `scripts/new-project.sh ../vendas --packs cap-app,fiori-elements-patterns --tools claude,cursor` |
-| Projeto só Fiori | `scripts/new-project.sh ../app-vendas --packs fiori-freestyle-patterns` |
+| Projeto CAP a partir do template | `sap-btp-kit init ../vendas-api --packs cap-app --tools codex` |
+| Só os padrões, num projeto existente | `sap-btp-kit init ../meu-projeto --packs cap-patterns` |
+| Fullstack (CAP + Fiori Elements) | `sap-btp-kit init ../vendas --packs cap-app,fiori-elements-patterns --tools claude,cursor` |
+| Projeto só Fiori | `sap-btp-kit init ../app-vendas --packs fiori-freestyle-patterns` |
 
-O script:
+O `init`:
 
 - copia sempre a `base`, e o `cap-patterns` sempre que houver `cap-app`;
 - substitui o placeholder `cap-template` do `cap-app` pelo nome do projeto (pasta de destino, ou
@@ -43,13 +50,41 @@ O script:
   instruções da base no fim; os outros conflitos são listados para revisão manual;
 - leva sempre as skills do OpenSpec em `.agents/skills/`, lidas pelo Codex e por agentes que usam
   `.agents/`; com `--tools claude,cursor` (ferramentas com pasta própria) corre também
-  `openspec init`, que gera as skills dessas ferramentas e mantém o `openspec/config.yaml` da base.
+  `openspec init`, que gera as skills dessas ferramentas e mantém o `openspec/config.yaml` da base;
+- grava `.sap-btp-kit.json`, que deve ser commitado: regista a versão do kit, os packs e o hash de
+  cada ficheiro atualizável, tal como veio do kit.
 
 Num projeto Fiori, gera-se primeiro a app pela tooling padrão (`@sap/generator-fiori-elements` ou
 SAP Fiori generator / `@ui5/cli`) e depois aplica-se o pack de padrões por cima.
 
-Sem o script, o equivalente é `cp -R packs/base/. packs/<pack>/. <destino>/`, seguido da troca do
-placeholder (e do `openspec init --tools ...`, se for preciso).
+Sem a CLI, o equivalente é `cp -R packs/base/. packs/<pack>/. <destino>/`, seguido da troca do
+placeholder, de renomear o `gitignore` do `cap-app` para `.gitignore` (e do
+`openspec init --tools ...`, se for preciso). Um projeto montado assim não tem manifesto.
+
+## Atualizar um projeto
+
+```bash
+sap-btp-kit update [destino] --dry-run   # só mostra o que mudaria
+sap-btp-kit update [destino]
+```
+
+O `update` leva o projeto para a versão do kit que está a ser executada, comparando o manifesto, o
+disco e o kit:
+
+| Situação do ficheiro | Resultado |
+|---|---|
+| Sem alterações no projeto | Substituído pela nova versão |
+| Alterado no projeto, igual no kit | Mantido |
+| Alterado no projeto e no kit | Mantido; a nova versão fica em `<ficheiro>.kit-new` para reconciliar à mão e apagar |
+| Novo no kit | Copiado |
+| Apagado no projeto | Continua apagado |
+| Saiu do kit | Mantido no projeto, com aviso |
+
+Um conflito só é assinalado uma vez: a seguir, o ficheiro conta como alteração local. O código do
+`cap-app` nunca é atualizado, porque depois do `init` pertence ao projeto; o `update` cobre os
+restantes packs (`AGENTS.md`, `openspec/config.yaml`, skills, `oflow.sh` e `docs/patterns/`). Um
+projeto já existente sem manifesto é adotado correndo o `init` nele. Quem acrescenta packs depois
+tem de estar na mesma versão do kit, por isso corre primeiro o `update`.
 
 ## Fluxo de trabalho (OpenSpec → branch → MR)
 
@@ -146,7 +181,12 @@ packs/base`. Ao atualizar o OpenSpec, regenere-as com `openspec update packs/bas
 
 Ao alterar um pack, mantenha-o com a estrutura de destino (o que está em `packs/<pack>/` é o que
 aparece na raiz do projeto) e evite links entre packs diferentes — o outro pack pode não estar
-instalado.
+instalado. A única exceção é o `.gitignore`, que fica no pack como `gitignore` porque o npm não o
+publica, e a CLI repõe-lhe o nome na cópia.
+
+A CLI está em [`bin/`](bin/) e [`lib/`](lib/), sem dependências (Node 20+), e os testes correm com
+`npm test`. Para lançar uma versão, suba a `version` do `package.json` e crie a tag `v<versão>`.
+Confira o conteúdo do pacote com `npm pack --dry-run`.
 
 ## Convenção de idioma
 
