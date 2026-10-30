@@ -32,7 +32,9 @@ npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-
 A forma curta dos exemplos abaixo, `sap-btp-kit`, vale com o pacote instalado
 (`npm i -g @sap-technology/sap-btp-kit`, publicado no registry do GitLab, com o escopo
 `@sap-technology` configurado no `.npmrc`). A partir de um clone deste repositório,
-`scripts/new-project.sh` é um atalho para o `init`, com os mesmos argumentos.
+`scripts/new-project.sh` é um atalho para o `init`, com os mesmos argumentos: dentro desse clone o
+`npx` falha com `sap-btp-kit: command not found`, por isso use o atalho ou corra o `npx` noutra pasta.
+No Windows, veja antes [Configurar no Windows](#configurar-no-windows).
 
 | Situação | Comando |
 |---|---|
@@ -85,6 +87,69 @@ Um conflito só é assinalado uma vez: a seguir, o ficheiro conta como alteraç�
 restantes packs (`AGENTS.md`, `openspec/config.yaml`, skills, `oflow.sh` e `docs/patterns/`). Um
 projeto já existente sem manifesto é adotado correndo o `init` nele. Quem acrescenta packs depois
 tem de estar na mesma versão do kit, por isso corre primeiro o `update`.
+
+## Configurar no Windows
+
+> Estes passos ainda não foram testados em Windows. O kit só foi validado em macOS.
+
+O `oflow.sh` e o `new-project.sh` são scripts bash, por isso, no Windows, use o **Git Bash** para
+tudo, e também para correr o seu agente de IA. Não use PowerShell nem CMD no dia a dia do projeto.
+
+1. No PowerShell, instale as ferramentas. Depois feche o terminal, para o `PATH` ser atualizado:
+
+   ```powershell
+   winget install Git.Git
+   winget install OpenJS.NodeJS.LTS
+   winget install glab.glab
+   ```
+
+2. Abra o **Git Bash**. Os passos seguintes correm todos nele. Confirme que o Node é 20 ou superior e
+   instale o OpenSpec:
+
+   ```bash
+   node --version
+   npm i -g @fission-ai/openspec
+   ```
+
+3. **Antes de clonar qualquer repositório**, impeça o git de converter as quebras de linha para CRLF:
+
+   ```bash
+   git config --global core.autocrlf input
+   ```
+
+   Com CRLF, o `oflow.sh` deixa de correr no bash, e o `update` passa a tratar os ficheiros como
+   alterados no projeto. Um repositório já clonado com CRLF tem de ser clonado de novo.
+
+4. Crie um Personal Access Token e autentique o `glab`, como em [Configurar o `glab`](#configurar-o-glab).
+
+5. Configure o npm para o registry do kit, com o mesmo token. O token não aparece enquanto o cola:
+
+   ```bash
+   read -rsp "Token: " GITLAB_TOKEN; echo
+   cat >> ~/.npmrc <<EOF
+   @sap-technology:registry=https://git.pt-ibl-inetum.group/api/v4/packages/npm/
+   //git.pt-ibl-inetum.group/api/v4/packages/npm/:_authToken=$GITLAB_TOKEN
+   EOF
+   unset GITLAB_TOKEN
+   ```
+
+   O ficheiro fica em `C:\Users\<utilizador>\.npmrc`, com o token em texto puro: não o partilhe nem
+   o commite. Quando o token for renovado, substitua-o nesse ficheiro.
+
+6. Confirme, numa pasta **fora** de um clone deste repositório, que o comando mostra a versão do kit:
+
+   ```bash
+   npm view @sap-technology/sap-btp-kit version
+   ```
+
+### Limitações no Windows
+
+- **`--tools` não funciona no `init`:** a CLI não consegue chamar o `openspec` e diz que ele não está
+  instalado. Monte o projeto sem `--tools` e, a seguir, corra na pasta do projeto
+  `openspec init --tools claude,cursor .`
+- **`update` em equipas com sistemas diferentes:** no Windows, o `.sap-btp-kit.json` grava os caminhos
+  com `\`. Corra o `init` e o `update` de um projeto sempre no mesmo sistema. Noutro sistema, nada é
+  apagado, mas os ficheiros são reportados como conflitos ou como removidos do kit.
 
 ## Fluxo de trabalho (OpenSpec → branch → MR)
 
