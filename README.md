@@ -142,15 +142,6 @@ tudo, e também para correr o seu agente de IA. Não use PowerShell nem CMD no d
    npm view @sap-technology/sap-btp-kit version
    ```
 
-### Limitações no Windows
-
-- **`--tools` não funciona no `init`:** a CLI não consegue chamar o `openspec` e diz que ele não está
-  instalado. Monte o projeto sem `--tools` e, a seguir, corra na pasta do projeto
-  `openspec init --tools claude,cursor .`
-- **`update` em equipas com sistemas diferentes:** no Windows, o `.sap-btp-kit.json` grava os caminhos
-  com `\`. Corra o `init` e o `update` de um projeto sempre no mesmo sistema. Noutro sistema, nada é
-  apagado, mas os ficheiros são reportados como conflitos ou como removidos do kit.
-
 ## Fluxo de trabalho (OpenSpec → branch → MR)
 
 Cada tarefa é uma change [OpenSpec](https://github.com/Fission-AI/OpenSpec), desenvolvida numa

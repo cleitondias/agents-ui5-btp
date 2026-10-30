@@ -71,6 +71,7 @@ describe('sap-btp-kit', () => {
     it('rejeita pack desconhecido, nome inválido e versão diferente da do projeto', () => {
       assert.match(run('init', dest, '--packs', 'nada').stderr, /pack desconhecido: nada/);
       assert.match(run('init', dest, '--packs', 'cap-app', '--name', 'Mau_Nome').stderr, /inválido/);
+      assert.match(run('init', dest, '--tools', 'claude;x').stderr, /--tools inválido/);
 
       assert.equal(run('init', dest).status, 0);
       setManifest((data) => { data.version = '0.0.1'; });
@@ -132,6 +133,17 @@ describe('sap-btp-kit', () => {
       assert.match(run('update', dest).stdout, /Saíram do kit[^]*docs\/antigo\.md/);
       assert.ok(existsSync(join(dest, 'docs/antigo.md')));
       assert.ok(!('docs/antigo.md' in manifest().files));
+    });
+
+    it('lê manifestos da 0.1.0 com caminhos do Windows e normaliza-os', () => {
+      setManifest((data) => {
+        data.files[TRACKED.replaceAll('/', '\\')] = data.files[TRACKED];
+        delete data.files[TRACKED];
+      });
+
+      assert.match(run('update', dest).stdout, /Nada a atualizar/);
+      assert.ok(TRACKED in manifest().files);
+      assert.ok(Object.keys(manifest().files).every((file) => !file.includes('\\')));
     });
 
     it('--dry-run não escreve nada', () => {
