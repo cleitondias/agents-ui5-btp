@@ -3,13 +3,15 @@
 #
 #   scripts/oflow.sh start <nome-da-change>   no fim do propose: cria a branch change/<nome> a partir
 #                                             da main atualizada e commita a proposta (idempotente)
-#   scripts/oflow.sh publish                  depois do archive: commit, push e abertura do MR
-#   scripts/oflow.sh ship                     sem agente: valida, arquiva (CLI) e corre o publish
+#   scripts/oflow.sh check                    portão de qualidade: `npm run lint` e `npm test` do
+#                                             projeto (corrido também pelo publish e pelo ship)
+#   scripts/oflow.sh publish                  depois do archive: check, commit, push e abertura do MR
+#   scripts/oflow.sh ship                     sem agente: check, valida, arquiva (CLI) e corre o publish
 #
 # Independente de ferramenta de IA: pode ser corrido à mão ou por qualquer agente.
 # O MR é aberto com `glab` se estiver instalado; senão via push options do GitLab.
 # Variáveis opcionais: OFLOW_BASE_BRANCH, OFLOW_REMOTE, OFLOW_MR_VIA (auto|glab|push),
-# OFLOW_REVIEWERS (só glab, ex.: joao,maria).
+# OFLOW_REVIEWERS (só glab, ex.: joao,maria), OFLOW_SKIP_CHECK=1 (salta o check; só em emergência).
 
 set -euo pipefail
 
@@ -35,6 +37,34 @@ archived_dir() {
 # Primeira linha não vazia da secção "## Why" do proposal, para a descrição curta do MR.
 proposal_summary() {
   awk '/^## /{in_why = ($0 ~ /^## Why/); next} in_why && NF {print; exit}' "$1"
+}
+
+# Portão de qualidade antes de publicar: corre os scripts `lint` e `test` do package.json da raiz,
+# quando existirem. Um projeto sem esses scripts passa com aviso — o objetivo é que cada pack os
+# traga (o cap-app traz eslint + cds test/cds-test) e que o agente não dê a change por pronta sem os
+# correr. Falha ao primeiro script que falhar.
+cmd_check() {
+  if [[ "${OFLOW_SKIP_CHECK:-}" == 1 ]]; then
+    echo "oflow: check saltado (OFLOW_SKIP_CHECK=1)." >&2
+    return 0
+  fi
+  if [[ ! -f package.json ]]; then
+    echo "oflow: sem package.json na raiz — nenhum check automático a correr." >&2
+    return 0
+  fi
+
+  local script ran=0
+  for script in lint test; do
+    if node -e 'process.exit(require("./package.json").scripts?.[process.argv[1]] ? 0 : 1)' "$script"; then
+      echo "oflow: a correr npm run ${script}..."
+      npm run --silent "$script" || die "npm run ${script} falhou — corrige antes de continuar."
+      ran=1
+    else
+      echo "oflow: package.json sem script '${script}' — saltado." >&2
+    fi
+  done
+  (( ran )) && echo "oflow: check concluído sem erros." || echo "oflow: nenhum script lint/test configurado." >&2
+  return 0
 }
 
 cmd_start() {
@@ -83,6 +113,8 @@ cmd_publish() {
   stray="$(git status --porcelain --untracked-files=all | awk '{print $NF}' | grep -v '^openspec/' || true)"
   [[ -z "$stray" ]] || die "há alterações por commitar fora de openspec/:"$'\n'"$stray"
 
+  cmd_check
+
   if [[ -n "$(git status --porcelain openspec)" ]]; then
     git add openspec
     git commit --quiet -m "chore(openspec): archive ${name}"
@@ -123,14 +155,16 @@ cmd_ship() {
     die "há tasks por concluir em ${change_dir}/tasks.md."
   fi
 
+  cmd_check
   openspec validate "$name" --strict --no-interactive
   openspec archive "$name" --yes
-  cmd_publish
+  cmd_publish   # volta a correr o check, por segurança: é rápido e o archive não muda código
 }
 
 case "${1:-}" in
   start)   shift; cmd_start "$@" ;;
+  check)   shift; cmd_check "$@" ;;
   publish) shift; cmd_publish "$@" ;;
   ship)    shift; cmd_ship "$@" ;;
-  *)       sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  *)       sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

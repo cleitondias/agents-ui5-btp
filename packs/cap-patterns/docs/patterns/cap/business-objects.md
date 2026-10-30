@@ -297,6 +297,10 @@ Toda mensagem de erro voltada ao usuário passa por `bundle.getText(<chave>)`, n
 literal — as chaves vivem em `_i18n/i18n*.properties` na raiz do projeto (compartilhado entre
 back-end e apps).
 
+Num projeto ESM (`"type": "module"`, como o template), o caminho relativo falha com `ENOENT` ao
+primeiro `getText`, e o erro de negócio vira 500. Usa um caminho absoluto:
+`path: join(import.meta.dirname, "../../../_i18n/i18n")`.
+
 ## Integração com sistema externo isolada num BO dedicado
 
 Chamadas a serviços externos ficam encapsuladas em um BO próprio (ex.: `ExternalSystemBO`),

@@ -12,8 +12,8 @@ projeto, por isso montar um projeto é copiar os packs desejados uns por cima do
 | Pack | O que leva para o projeto |
 |---|---|
 | [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/` (config, `specs/`, `changes/`), skills do OpenSpec em `.agents/skills/` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR) |
-| [`cap-app`](packs/cap-app/) | Código do template SAP CAP — `db/`, `srv/`, `mta.yaml`, `xs-security.json`... (inclui `cap-patterns`) |
-| [`cap-patterns`](packs/cap-patterns/) | [`docs/patterns/cap/`](packs/cap-patterns/docs/patterns/cap/) — modelo de domínio, services por perfil de acesso, Business Objects, erros, estilo |
+| [`cap-app`](packs/cap-app/) | Código do template SAP CAP — `db/`, `srv/`, `mta.yaml`, `xs-security.json`, lint (ESLint) e testes (`cds test` + `@cap-js/cds-test`) em `test/` (inclui `cap-patterns`) |
+| [`cap-patterns`](packs/cap-patterns/) | [`docs/patterns/cap/`](packs/cap-patterns/docs/patterns/cap/) — modelo de domínio, services por perfil de acesso, Business Objects, erros, estilo, testes |
 | [`fiori-elements-patterns`](packs/fiori-elements-patterns/) | [`docs/patterns/fiori-elements/`](packs/fiori-elements-patterns/docs/patterns/fiori-elements/) — anotações CDS, manifest, controller extensions, fragments |
 | [`fiori-freestyle-patterns`](packs/fiori-freestyle-patterns/) | [`docs/patterns/fiori-freestyle/`](packs/fiori-freestyle-patterns/docs/patterns/fiori-freestyle/) — controllers, two-way binding OData v4, formatters, views/fragments |
 
@@ -61,7 +61,7 @@ nenhum agente específico.
 |---|---|---|
 | Proposta | skill `openspec-propose` | escrever `openspec/changes/<nome>/` |
 | Branch | automática no fim do propose (corre `oflow.sh start` depois do `tasks.md`) | `scripts/oflow.sh start <nome>` |
-| Implementação | skill `openspec-apply-change` | commits normais |
+| Implementação | skill `openspec-apply-change` (corre `oflow.sh check` antes de concluir) | commits normais + `scripts/oflow.sh check` |
 | Archive + MR | skill `openspec-archive-change` (corre `oflow.sh publish` no fim) | `scripts/oflow.sh ship` |
 
 O que liga as skills do OpenSpec ao fluxo e aos padrões está no `openspec/config.yaml` da base:
@@ -75,6 +75,29 @@ A branch nasce no propose, e não no apply, para que a proposta fique commitada 
 idempotente: na própria branch só commita as alterações da proposta (por exemplo, depois de um
 `openspec-update-change`), e se a branch já existir muda para ela. Para propostas escritas sem a
 skill, o apply continua a correr o `start` antes de alterar código.
+
+### Portão de qualidade (`oflow.sh check`)
+
+Nada chega ao MR sem passar pelo `scripts/oflow.sh check`: ele corre os scripts `lint` e `test`
+do `package.json` da raiz do projeto, quando existirem, e falha ao primeiro erro. O `publish` e o
+`ship` correm-no antes de fazer push, e a guidance do `apply` manda o agente corrê-lo antes de dar
+a última task por concluída — assim a afirmação "está pronto" do agente é verificada, e não só
+declarada. Num projeto sem esses scripts o check passa com aviso; `OFLOW_SKIP_CHECK=1` salta-o, só
+para emergências.
+
+O `cap-app` já traz os dois scripts: `npm run lint` (ESLint com a config recomendada do CAP, sem
+warnings tolerados) e `npm test` (`cds test`, o runner do `@sap/cds-dk`, com [`@cap-js/cds-test`](https://cap.cloud.sap/docs/node.js/cds-test),
+com um smoke test em `test/services.test.js` que arranca o servidor e chama cada service). No CAP,
+os testes são escritos durante as tasks, um ficheiro por modelo em
+`test/model/<Entidade>BO.test.js`, seguindo o padrão
+[`testing.md`](packs/cap-patterns/docs/patterns/cap/testing.md).
+
+**Nas apps Fiori não se exigem testes.** Em Fiori Elements o código próprio é quase só anotações
+e manifest, e em Freestyle a lógica de negócio deve estar no CAP, onde já é testada; OPA5 e QUnit
+mantidos por agente custam mais do que apanham. O portão de uma app Fiori é só o lint: acrescente
+`lint` (`ui5lint`) ao `package.json` da raiz para o check o apanhar (o check só olha para o
+`package.json` da raiz). Quem quiser testes de UI pode acrescentar um script `test`, e o check
+passa a corrê-lo, mas isso é opção do projeto, não requisito do fluxo.
 
 O MR é aberto com o [`glab`](https://gitlab.com/gitlab-org/cli) quando ele está instalado e
 autenticado, o que permite usar a descrição completa e definir reviewers

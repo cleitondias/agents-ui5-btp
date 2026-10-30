@@ -31,11 +31,16 @@ branch própria `change/<nome-da-change>` e entregue num Merge Request para revi
    proposta. Voltar a correr o `start` na mesma branch só commita as alterações da proposta.
 2. **Implementação** — skill de apply do OpenSpec, seguindo os padrões acima; commits em
    Conventional Commits. Se a branch atual não for `change/<nome>` (ex.: proposta escrita à mão),
-   o apply corre o `start` antes de alterar código.
-3. **Archive + MR** — skill de archive do OpenSpec e, no fim, `scripts/oflow.sh publish` (commit do
-   archive, push e abertura do MR no GitLab).
+   o apply corre o `start` antes de alterar código. Antes de dar a última task por concluída,
+   corre `scripts/oflow.sh check` (lint e testes) e corrige o que falhar. No CAP (`db/`, `srv/`),
+   os testes unitários são escritos durante cada task, no mesmo commit do código, em
+   `test/model/<Entidade>BO.test.js` (um ficheiro por modelo; ver
+   `docs/patterns/cap/testing.md`). **Nas apps Fiori não se exigem testes**: o portão é
+   só o lint, e a lógica testável fica no CAP.
+3. **Archive + MR** — skill de archive do OpenSpec e, no fim, `scripts/oflow.sh publish` (check,
+   commit do archive, push e abertura do MR no GitLab). O publish falha se o check não passar.
 
-Sem agente, o passo 3 é `scripts/oflow.sh ship`. A configuração que liga as skills do OpenSpec a
+Sem agente, o passo 3 é `scripts/oflow.sh ship`, que também corre o check. A configuração que liga as skills do OpenSpec a
 este fluxo está em `openspec/config.yaml`; os `SKILL.md` gerados pelo `openspec init` não devem ser
 editados, porque o `openspec update` sobrescreve-os.
 

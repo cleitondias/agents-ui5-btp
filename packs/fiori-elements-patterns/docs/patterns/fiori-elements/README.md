@@ -83,7 +83,7 @@ app/<feature>/
       i18n.properties                # chaves referenciadas em @UI/@Common e nos fragments
       i18n_pt_PT.properties            # tradução PT
     localService/metadata.xml          # snapshot do $metadata para mock/offline
-    test/                               # OPA5 (integration) por List Report + Object Page
+    test/                               # opcional: OPA5 gerado pela tooling; o fluxo não exige testes em apps Fiori (só lint)
   annotations.cds                       # UI.LineItem/HeaderInfo/Facets/FieldGroup/ValueList/SideEffects
   package.json / ui5.yaml / ui5-deploy.yaml / xs-app.json   # bootstrap standalone UI5 + deploy CF
 ```

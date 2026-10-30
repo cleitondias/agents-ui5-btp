@@ -15,6 +15,7 @@ Leia os padrões desta pasta antes de tomar decisões estruturais — a maioria 
 | [business-objects.md](business-objects.md) | Camada de handlers (`srv/src/model/*BO.js`): `BaseBO`, herança, hooks `before/after/on`, escopo automático, anexos, integração externa via destination |
 | [error-handling.md](error-handling.md) | Erros tipados com status HTTP (`HTTPHelpers.js`) e handler central de erro por service, incluindo `$batch` |
 | [code-style.md](code-style.md) | Regras de clareza a nível de método: guard clauses, tabela de dispatch, evitar duplicação de query, um método por responsabilidade |
+| [testing.md](testing.md) | Testes por domínio (`test/model/<Entidade>BO.test.js`, um ficheiro por modelo), criados durante as tasks: unitários do BO e pelo service |
 
 ## Começar um projeto CAP
 
@@ -30,6 +31,7 @@ Leia os padrões desta pasta antes de tomar decisões estruturais — a maioria 
    em `srv/services.js`, que deve ficar só como roteamento de eventos para os BOs. Se o projeto
    precisa de algum escopo de acesso automático (tenant, unidade organizacional), implemente-o
    como comportamento transversal no `BaseBO`, não espalhado pelos BOs individuais.
+4. Escreva os testes de cada BO à medida que o implementa, seguindo [testing.md](testing.md).
 
 ## Adicionar uma entidade nova
 
@@ -49,10 +51,14 @@ etapa, e revise a etapa anterior antes de avançar:
 4. **`srv/services.js`** — registre os handlers de `<Entidade>` chamando `<Entidade>BO`, um
    handler por evento, sem lógica inline, com o mesmo `try { } catch (error) { throw new
    Error(error); }` das entidades existentes.
+5. **`test/model/<Entidade>BO.test.js`** — um ficheiro por modelo, seguindo
+   [testing.md](testing.md): testes unitários de cada método com regra e testes pelo service de
+   cada evento registado.
 
 Ao terminar, confira que nenhuma regra de negócio da entidade nova ficou em `services.js`
-(deveria estar toda em `<Entidade>BO.js`) e que o comportamento transversal que já existe no
-`BaseBO` (escopo, auditoria) não foi duplicado na classe nova.
+(deveria estar toda em `<Entidade>BO.js`), que o comportamento transversal que já existe no
+`BaseBO` (escopo, auditoria) não foi duplicado na classe nova, e que cada BO alterado tem testes
+que cobrem a alteração em `test/model/`, com `npm test` a passar.
 
 ## Visão geral da arquitetura de referência
 
@@ -62,6 +68,9 @@ projeto/
     schema.cds          # modelo de domínio (namespace <empresa>.<sigla>)
     data/                # CSVs de dados mestre
     undeploy.json        # artefactos HDI gerados que o deployer pode remover (views, índices, drafts…)
+  test/
+    services.test.js     # smoke test dos services
+    model/*BO.test.js    # 1 ficheiro de teste por BO (ver testing.md)
   srv/
     services.cds         # services OData por perfil de acesso (admin/user), projections
     services.js           # wiring de eventos CAP -> Business Objects (sem lógica própria)

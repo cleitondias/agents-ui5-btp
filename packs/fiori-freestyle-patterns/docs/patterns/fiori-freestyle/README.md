@@ -81,9 +81,9 @@ projeto/
       <Feature>.view.xml             # 1 view por rota
       fragments/*.fragment.xml        # diálogos/popovers, carregados por nome via Fragment.load
     i18n/i18n.properties             # taxonomia de prefixo: btn_/msg_/toast_/title_/label_/ph_
-    test/
-      unit/                            # smoke test por controller
-      integration/                      # jornadas OPA5 (Given/When/Then + Page Objects)
+    test/                            # opcional: o fluxo não exige testes em apps Fiori (só lint)
+      unit/                            # QUnit, se o projeto quiser (formatters, types)
+      integration/                      # jornadas OPA5 (Given/When/Then + Page Objects), se o projeto quiser
 ```
 
 ### Decisões arquiteturais centrais (detalhes nos padrões desta pasta)

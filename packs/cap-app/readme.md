@@ -11,11 +11,14 @@ File or Folder | Purpose
 `srv/` | your service models and code go here
 `readme.md` | this getting started guide
 
+`test/` | tests (`cds test` + `@cap-js/cds-test`): one file per model in `test/model/`, see `docs/patterns/cap/testing.md`
+
 ## Next Steps
 
 - Open a new terminal and run `cds watch`
 - (in VS Code simply choose _**Terminal** > Run Task > cds watch_)
 - Start with your domain model, in a CDS file in `db/`
+- `npm run lint` and `npm test` are the quality gate run by `scripts/oflow.sh check` before every MR
 
 ## Learn More
 
