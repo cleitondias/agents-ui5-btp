@@ -6,7 +6,8 @@ context: |
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
   Este repositório é um kit distribuído por packs (packs/<pack>/), cada um com a estrutura exata
-  com que fica na raiz do projeto de destino; scripts/new-project.sh monta projetos a partir deles.
+  com que fica na raiz do projeto de destino; a CLI sap-btp-kit (bin/, lib/) monta e atualiza
+  projetos a partir deles, e scripts/new-project.sh é um atalho para o seu init.
   packs/base vai sempre para o projeto. Uma change que altere um pack não deve criar links entre
   packs diferentes, e deve verificar o resultado com scripts/new-project.sh num diretório temporário.
 

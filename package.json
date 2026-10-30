@@ -1,0 +1,24 @@
+{
+  "name": "@sap-technology/sap-btp-kit",
+  "version": "0.1.0",
+  "description": "Monta e atualiza projetos SAP BTP a partir dos packs do kit Inetum",
+  "type": "module",
+  "bin": {
+    "sap-btp-kit": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "packs",
+    "!packs/**/node_modules"
+  ],
+  "scripts": {
+    "test": "node --test test/cli.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "@sap-technology:registry": "https://git.pt-ibl-inetum.group/api/v4/projects/679/packages/npm/"
+  }
+}
