@@ -25,7 +25,7 @@ de entrada da tecnologia (índice, ordem de aplicação, checklist e arquitetura
 ## Montar um projeto
 
 ```bash
-npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.1.1 \
+npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.2.0 \
   init <destino> --packs <packs> --tools <ferramentas-de-ia>
 ```
 
@@ -68,12 +68,13 @@ placeholder, de renomear o `gitignore` do `cap-app` para `.gitignore` (e do
 ## Atualizar um projeto
 
 ```bash
-sap-btp-kit update [destino] --dry-run   # só mostra o que mudaria
-sap-btp-kit update [destino]
+sap-btp-kit sync [destino] --dry-run   # só mostra o que mudaria
+sap-btp-kit sync [destino]
 ```
 
-O `update` leva o projeto para a versão do kit que está a ser executada, comparando o manifesto, o
-disco e o kit:
+O `sync` atualiza o **projeto**, por isso corre dentro dele ou com o caminho dele como argumento.
+Ele leva o projeto para a versão do kit que está a ser executada, comparando o manifesto, o disco e
+o kit:
 
 | Situação do ficheiro | Resultado |
 |---|---|
@@ -85,10 +86,29 @@ disco e o kit:
 | Saiu do kit | Mantido no projeto, com aviso |
 
 Um conflito só é assinalado uma vez: a seguir, o ficheiro conta como alteração local. O código do
-`cap-app` nunca é atualizado, porque depois do `init` pertence ao projeto; o `update` cobre os
+`cap-app` nunca é atualizado, porque depois do `init` pertence ao projeto; o `sync` cobre os
 restantes packs (`AGENTS.md`, `openspec/config.yaml`, skills, `oflow.sh` e `docs/patterns/`). Um
 projeto já existente sem manifesto é adotado correndo o `init` nele. Quem acrescenta packs depois
-tem de estar na mesma versão do kit, por isso corre primeiro o `update`.
+tem de estar na mesma versão do kit, por isso corre primeiro o `sync`.
+
+## Atualizar a CLI
+
+O `upgrade` atualiza a **própria CLI**, sem tocar em projetos. Atualize primeiro a CLI e depois
+cada projeto:
+
+```bash
+sap-btp-kit upgrade
+sap-btp-kit sync vendas
+```
+
+| Como a CLI é executada | Como atualizar |
+|---|---|
+| Instalada com `npm i -g` | `sap-btp-kit upgrade` |
+| Com `npx` | Peça a versão: `npx @sap-technology/sap-btp-kit@latest sync` |
+| A partir de um clone deste repositório | `git pull` |
+
+A instalação global funciona em qualquer pasta, inclusive dentro de um clone deste repositório.
+O nome antigo `update` ainda funciona como `sync`, com um aviso, mas vai sair.
 
 ## Configurar no Windows
 
@@ -119,7 +139,7 @@ tudo, e também para correr o seu agente de IA. Não use PowerShell nem CMD no d
    git config --global core.autocrlf input
    ```
 
-   Com CRLF, o `oflow.sh` deixa de correr no bash, e o `update` passa a tratar os ficheiros como
+   Com CRLF, o `oflow.sh` deixa de correr no bash, e o `sync` passa a tratar os ficheiros como
    alterados no projeto. Um repositório já clonado com CRLF tem de ser clonado de novo.
 
 4. Crie um Personal Access Token e autentique o `glab`, como em [Configurar o `glab`](#configurar-o-glab).

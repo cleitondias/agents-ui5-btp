@@ -37,7 +37,7 @@ describe('sap-btp-kit', () => {
       const result = run(...args);
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /sap-btp-kit init/);
-      assert.match(result.stdout, /sap-btp-kit update/);
+      assert.match(result.stdout, /sap-btp-kit sync/);
       assert.match(result.stdout, /sap-btp-kit help/);
     }
   });
@@ -49,6 +49,12 @@ describe('sap-btp-kit', () => {
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.stdout.trim(), version);
     }
+  });
+
+  it('upgrade recusa correr a partir de um clone', () => {
+    const result = run('upgrade');
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /clone[^]*git pull/);
   });
 
   describe('init', () => {
@@ -94,11 +100,11 @@ describe('sap-btp-kit', () => {
 
       assert.equal(run('init', dest).status, 0);
       setManifest((data) => { data.version = '0.0.1'; });
-      assert.match(run('init', dest, '--packs', 'cap-patterns').stderr, /alinha-as com `update`/);
+      assert.match(run('init', dest, '--packs', 'cap-patterns').stderr, /alinha-as com `sync`/);
     });
   });
 
-  describe('update', () => {
+  describe('sync', () => {
     beforeEach(() => {
       assert.equal(run('init', dest, '--packs', 'cap-patterns').status, 0);
     });
@@ -109,13 +115,13 @@ describe('sap-btp-kit', () => {
       const oldHash = `sha256:${createHash('sha256').update('antigo\n').digest('hex')}`;
       setManifest((data) => { data.files[TRACKED] = oldHash; });
 
-      assert.equal(run('update', dest).status, 0);
+      assert.equal(run('sync', dest).status, 0);
       assert.equal(read(TRACKED), current);
     });
 
     it('mantém uma alteração local quando o kit não mudou', () => {
       writeFileSync(join(dest, TRACKED), 'meu\n');
-      const result = run('update', dest);
+      const result = run('sync', dest);
       assert.equal(result.status, 0);
       assert.equal(read(TRACKED), 'meu\n');
       assert.ok(!existsSync(join(dest, `${TRACKED}.kit-new`)));
@@ -126,22 +132,22 @@ describe('sap-btp-kit', () => {
       writeFileSync(join(dest, TRACKED), 'meu\n');
       setManifest((data) => { data.files[TRACKED] = OLD_HASH; });
 
-      assert.match(run('update', dest).stdout, /kit-new/);
+      assert.match(run('sync', dest).stdout, /kit-new/);
       assert.equal(read(TRACKED), 'meu\n');
       assert.ok(existsSync(join(dest, `${TRACKED}.kit-new`)));
 
       rmSync(join(dest, `${TRACKED}.kit-new`));
-      assert.match(run('update', dest).stdout, /Nada a atualizar/);
+      assert.match(run('sync', dest).stdout, /Nada a atualizar/);
       assert.ok(!existsSync(join(dest, `${TRACKED}.kit-new`)));
     });
 
     it('copia ficheiros novos no kit e respeita os apagados no projeto', () => {
       rmSync(join(dest, TRACKED));
-      assert.match(run('update', dest).stdout, /Nada a atualizar/);
+      assert.match(run('sync', dest).stdout, /Nada a atualizar/);
       assert.ok(!existsSync(join(dest, TRACKED)));
 
       setManifest((data) => { delete data.files[TRACKED]; });
-      assert.match(run('update', dest).stdout, /Novos:/);
+      assert.match(run('sync', dest).stdout, /Novos:/);
       assert.ok(existsSync(join(dest, TRACKED)));
     });
 
@@ -149,7 +155,7 @@ describe('sap-btp-kit', () => {
       writeFileSync(join(dest, 'docs/antigo.md'), 'x\n');
       setManifest((data) => { data.files['docs/antigo.md'] = OLD_HASH; });
 
-      assert.match(run('update', dest).stdout, /Saíram do kit[^]*docs\/antigo\.md/);
+      assert.match(run('sync', dest).stdout, /Saíram do kit[^]*docs\/antigo\.md/);
       assert.ok(existsSync(join(dest, 'docs/antigo.md')));
       assert.ok(!('docs/antigo.md' in manifest().files));
     });
@@ -160,9 +166,16 @@ describe('sap-btp-kit', () => {
         delete data.files[TRACKED];
       });
 
-      assert.match(run('update', dest).stdout, /Nada a atualizar/);
+      assert.match(run('sync', dest).stdout, /Nada a atualizar/);
       assert.ok(TRACKED in manifest().files);
       assert.ok(Object.keys(manifest().files).every((file) => !file.includes('\\')));
+    });
+
+    it('update continua a funcionar como alias do sync, com aviso', () => {
+      const result = run('update', dest);
+      assert.equal(result.status, 0);
+      assert.match(result.stderr, /usa `sync`/);
+      assert.match(result.stdout, /Nada a atualizar/);
     });
 
     it('--dry-run não escreve nada', () => {
@@ -170,15 +183,15 @@ describe('sap-btp-kit', () => {
       setManifest((data) => { data.version = '0.0.1'; data.files[TRACKED] = OLD_HASH; });
       const before = read('.sap-btp-kit.json');
 
-      assert.match(run('update', dest, '--dry-run').stdout, /dry-run/);
+      assert.match(run('sync', dest, '--dry-run').stdout, /dry-run/);
       assert.equal(read('.sap-btp-kit.json'), before);
       assert.ok(!existsSync(join(dest, `${TRACKED}.kit-new`)));
     });
 
     it('recusa projetos sem manifesto e versões mais recentes', () => {
       setManifest((data) => { data.version = '99.0.0'; });
-      assert.match(run('update', dest).stderr, /mais recente/);
-      assert.match(run('update', root).stderr, /não encontrado/);
+      assert.match(run('sync', dest).stderr, /mais recente/);
+      assert.match(run('sync', root).stderr, /não encontrado[^]*upgrade/);
     });
   });
 });

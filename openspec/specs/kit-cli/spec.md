@@ -18,7 +18,7 @@ O comando `init` SHALL copiar a `base` e os packs pedidos para o destino, inclui
 - **THEN** o ficheiro MUST NOT ser sobrescrito e é listado, exceto o `AGENTS.md`, que recebe as instruções da base uma só vez
 
 ### Requirement: Atualização de projetos
-O comando `update` SHALL aplicar a versão do kit em execução, sem perder alterações locais, e MUST
+O comando `sync` SHALL aplicar a versão do kit em execução, sem perder alterações locais, e MUST
 NOT alterar ficheiros do `cap-app`.
 
 #### Scenario: Ficheiro sem alterações locais
@@ -34,7 +34,7 @@ NOT alterar ficheiros do `cap-app`.
 - **THEN** o ficheiro é mantido no projeto e listado num aviso
 
 #### Scenario: Simulação
-- **WHEN** `update --dry-run` é executado
+- **WHEN** `sync --dry-run` é executado
 - **THEN** o resultado é mostrado e nenhum ficheiro é escrito
 
 #### Scenario: Versão antiga do kit

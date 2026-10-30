@@ -3,15 +3,17 @@
 import { parseArgs } from 'node:util';
 import { KitError, VERSION } from '../lib/kit.js';
 import { init } from '../lib/init.js';
-import { update } from '../lib/update.js';
+import { sync } from '../lib/sync.js';
+import { upgrade } from '../lib/upgrade.js';
 
 const USAGE = `Uso:
   sap-btp-kit init <destino> [--packs <lista>] [--tools <lista>] [--name <nome>]
-  sap-btp-kit update [destino] [--dry-run]
+  sap-btp-kit sync [destino] [--dry-run]
+  sap-btp-kit upgrade
   sap-btp-kit help
   sap-btp-kit --version
 
-init    monta (ou complementa) um projeto. Ficheiros existentes nunca são sobrescritos: o
+init     monta (ou complementa) um projeto. Ficheiros existentes nunca são sobrescritos: o
         AGENTS.md recebe as instruções da base no fim, o resto é ignorado e listado.
           --packs  packs além da base, separados por vírgula:
                      cap-app                    código do template CAP (inclui cap-patterns)
@@ -23,12 +25,16 @@ init    monta (ou complementa) um projeto. Ficheiros existentes nunca são sobre
           --name   nome do projeto (kebab-case) que substitui o placeholder \`cap-template\` do
                    cap-app; por omissão, o nome da pasta de destino
 
-update  aplica a versão instalada do kit a um projeto com .sap-btp-kit.json (por omissão, a pasta
-        atual). Ficheiros alterados no projeto nunca são substituídos: em conflito, a nova versão
-        fica em <ficheiro>.kit-new. O código do cap-app não é atualizado.
-          --dry-run  só mostra o que mudaria
+sync     atualiza um PROJETO: aplica a versão do kit em execução a uma pasta com
+         .sap-btp-kit.json (por omissão, a pasta atual). Ficheiros alterados no projeto nunca são
+         substituídos: em conflito, a nova versão fica em <ficheiro>.kit-new. O código do cap-app
+         não é atualizado. \`update\` é um nome antigo deste comando e vai sair.
+           --dry-run  só mostra o que mudaria
 
-help    mostra esta ajuda (também com -h ou --help)
+upgrade  atualiza a própria CLI, instalada com \`npm i -g\`, para a versão mais recente. Não altera
+         projetos: corre o \`sync\` a seguir em cada um.
+
+help     mostra esta ajuda (também com -h ou --help)
 
 -v, --version  mostra a versão do kit`;
 
@@ -62,8 +68,13 @@ function main() {
   }
   if (positionals.length > 1) throw new KitError('só um destino é aceite.');
 
-  if (command === 'update') {
-    update(positionals[0] ?? '.', { dryRun: values['dry-run'] });
+  if (command === 'update') console.error('sap-btp-kit: `update` vai sair; usa `sync`.');
+  if (command === 'sync' || command === 'update') {
+    sync(positionals[0] ?? '.', { dryRun: values['dry-run'] });
+    return 0;
+  }
+  if (command === 'upgrade' && positionals.length === 0) {
+    upgrade();
     return 0;
   }
   if (command === 'init' && positionals.length === 1) {
