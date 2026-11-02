@@ -5,10 +5,16 @@
 #                                             da main atualizada e commita a proposta (idempotente)
 #   scripts/oflow.sh check                    portão de qualidade: `npm run lint` e `npm test` do
 #                                             projeto (corrido também pelo publish e pelo ship)
+#   scripts/oflow.sh validate                 no fim do apply: checks (lint, testes, tasks) e pré-prompt
+#                                             de auto-revisão da change antes do MR
 #   scripts/oflow.sh publish                  depois do archive: check, commit, push e abertura do MR
 #   scripts/oflow.sh ship                     sem agente: check, valida, arquiva (CLI) e corre o publish
+#   scripts/oflow.sh review <url-do-MR>       pré-prompt de code review de um MR (MR, change, padrões
+#                                             e diff), sem checkout; precisa do glab
 #
-# Independente de ferramenta de IA: pode ser corrido à mão ou por qualquer agente.
+# Independente de ferramenta de IA: pode ser corrido à mão ou por qualquer agente. Os pré-prompts
+# vêm dos templates em scripts/prompts/ e saem no stdout; num terminal, vão também para o
+# clipboard (o do review fica ainda em .git/oflow/).
 # O MR é aberto com `glab` se estiver instalado; senão via push options do GitLab.
 # Variáveis opcionais: OFLOW_BASE_BRANCH, OFLOW_REMOTE, OFLOW_MR_VIA (auto|glab|push),
 # OFLOW_REVIEWERS (só glab, ex.: joao,maria), OFLOW_SKIP_CHECK=1 (salta o check; só em emergência).
@@ -161,10 +167,238 @@ cmd_ship() {
   cmd_publish   # volta a correr o check, por segurança: é rápido e o archive não muda código
 }
 
+# --- Pré-prompts (validate e review) ---------------------------------------------------------------
+# O comando recolhe o contexto e imprime as instruções; quem revê é o agente que o corre (ou a
+# pessoa, a partir do clipboard).
+
+# Conteúdo de um ficheiro num commit, ou na working tree com ".".
+show_at() {
+  if [[ "$1" == . ]]; then cat "$2"; else git show "$1:$2"; fi
+}
+
+# Ficheiros de uma pasta (recursivo) num commit, ou na working tree com ".".
+ls_at() {
+  if [[ "$1" == . ]]; then find "$2" -type f 2>/dev/null | sort; else git ls-tree -r --name-only "$1" -- "$2"; fi
+}
+
+# Pasta da change <nome>, ativa ou arquivada, em <ref|.>; vazio se não existir.
+change_dir_at() {
+  ls_at "$1" openspec/changes \
+    | grep -E "^openspec/changes/(archive/[0-9]{4}-[0-9]{2}-[0-9]{2}-)?${2}/proposal\.md$" \
+    | tail -1 | sed 's#/proposal\.md$##' || true
+}
+
+# Proposta, specs, design e tasks da change, para o pré-prompt.
+change_section() {
+  local ref="$1" name="$2" dir file
+  dir="$(change_dir_at "$ref" "$name")"
+  if [[ -z "$dir" ]]; then
+    printf '## Change OpenSpec\n\n(não há change %s neste ramo)\n' "$name"
+    return 0
+  fi
+  printf '## Change OpenSpec (%s/)\n' "$dir"
+  for file in "$dir/proposal.md" $(ls_at "$ref" "$dir/specs" | grep '\.md$' || true) "$dir/design.md" "$dir/tasks.md"; do
+    show_at "$ref" "$file" >/dev/null 2>&1 || continue
+    printf '\n### %s\n\n%s\n' "${file#"$dir"/}" "$(show_at "$ref" "$file")"
+  done
+}
+
+# README.md de cada pasta de docs/patterns/ das camadas tocadas (ficheiros no stdin).
+patterns_section() {
+  local ref="$1" files dirs="" dir readme body=""
+  files="$(cat)"
+  grep -qE '^(db|srv|test)/' <<<"$files" && dirs+=" cap"
+  grep -qE '(^|/)(app|webapp)/|annotations\.cds$' <<<"$files" && dirs+=" fiori-elements fiori-freestyle"
+  for dir in $dirs; do
+    readme="docs/patterns/${dir}/README.md"
+    show_at "$ref" "$readme" >/dev/null 2>&1 || continue
+    body+=$'\n'"### ${readme}"$'\n\n'"$(show_at "$ref" "$readme")"$'\n'
+  done
+  if [[ -n "$body" ]]; then
+    printf '## Padrões de código\n\nOs ficheiros de padrões citados abaixo estão na mesma pasta de cada README.md; abre os que a mudança tocar.\n%s' "$body"
+  fi
+  return 0
+}
+
+# Templates dos pré-prompts: scripts/prompts/<comando>.md, com placeholders <%= nome %>.
+PROMPTS_DIR="$(dirname "$0")/prompts"
+PROMPT_VARS=""
+
+# As variáveis do template ficam em ficheiros, porque o diff pode exceder o limite de argumentos do
+# sistema. A pasta é criada antes de qualquer set_var, que pode correr num subshell (num pipe).
+init_prompt_vars() {
+  PROMPT_VARS="$(mktemp -d)"
+  trap 'rm -rf "$PROMPT_VARS"' EXIT
+}
+
+# Grava a variável <nome> do template (valor no 2.º argumento, ou no stdin se não houver).
+set_var() {
+  if (( $# > 1 )); then printf '%s' "$2" >"${PROMPT_VARS}/$1"; else cat >"${PROMPT_VARS}/$1"; fi
+}
+
+# Imprime o template <comando> com os <%= nome %> preenchidos; variáveis em falta ficam vazias.
+render_template() {
+  local template="${PROMPTS_DIR}/$1.md"
+  [[ -f "$template" ]] || die "falta o template ${template}."
+  node -e 'const fs = require("fs"), path = require("path");
+    const [template, vars] = process.argv.slice(1);
+    const value = (name) => {
+      const file = path.join(vars, name);
+      return fs.existsSync(file) ? fs.readFileSync(file, "utf8").replace(/\n+$/, "") : "";
+    };
+    process.stdout.write(fs.readFileSync(template, "utf8").replace(/<%=\s*(\w+)\s*%>/g, (_, name) => value(name)));' \
+    "$template" "$PROMPT_VARS"
+}
+
+# Copia o stdin para o clipboard, se houver um: pbcopy (macOS), clip (Git Bash), wl-copy ou xclip.
+copy_to_clipboard() {
+  local tool
+  for tool in pbcopy clip wl-copy "xclip -selection clipboard"; do
+    command -v "${tool%% *}" >/dev/null 2>&1 || continue
+    $tool && return 0
+  done
+  return 1
+}
+
+cmd_validate() {
+  local name base dir files script output checks="" failed=0
+  name="$(current_change)"
+  base="${REMOTE}/${BASE_BRANCH}"
+  git rev-parse --verify --quiet "$base" >/dev/null || base="$BASE_BRANCH"
+
+  for script in lint test; do
+    if [[ "${OFLOW_SKIP_CHECK:-}" == 1 ]]; then
+      checks+="– ${script} (saltado: OFLOW_SKIP_CHECK=1)"$'\n'
+    elif [[ ! -f package.json ]] || ! node -e 'process.exit(require("./package.json").scripts?.[process.argv[1]] ? 0 : 1)' "$script"; then
+      checks+="– ${script} (sem script no package.json)"$'\n'
+    elif output="$(npm run --silent "$script" 2>&1)"; then
+      checks+="✓ ${script}"$'\n'
+    else
+      checks+="✗ ${script} — $(tail -c 300 <<<"$output" | tr '\n' ' ')"$'\n'
+      failed=$((failed + 1))
+    fi
+  done
+
+  dir="$(change_dir_at . "$name")"
+  if [[ -n "$dir" && -f "$dir/tasks.md" ]]; then
+    local total done_
+    total="$(grep -cE '^[[:space:]]*- \[[ xX]\]' "$dir/tasks.md" || true)"
+    done_="$(grep -cE '^[[:space:]]*- \[[xX]\]' "$dir/tasks.md" || true)"
+    if (( total == 0 )); then
+      checks+="– tasks (tasks.md sem checklist)"$'\n'
+    elif (( done_ == total )); then
+      checks+="✓ tasks — ${done_}/${total} concluídas"$'\n'
+    else
+      checks+="✗ tasks — ${done_}/${total} concluídas"$'\n'
+      failed=$((failed + 1))
+    fi
+  else
+    checks+="– tasks (sem ${dir:-openspec/changes/${name}}/tasks.md)"$'\n'
+  fi
+
+  files="$(git diff --name-only "${base}...HEAD"; git status --porcelain --untracked-files=all | awk '{print $NF " (por commitar)"}')"
+
+  init_prompt_vars
+  set_var changeName "$name"
+  set_var branch "${PREFIX}${name}"
+  set_var base "$base"
+  change_section . "$name" | set_var changeSection
+  sed 's/ (por commitar)$//' <<<"$files" | patterns_section . | set_var patternsSection
+  set_var checksSection "$checks"
+  set_var diffFilesSection "${files:-(nenhum ficheiro modificado)}"
+
+  local prompt
+  prompt="$(render_template validate)"
+  printf '%s\n' "$prompt"
+  if [[ -t 1 ]] && printf '%s\n' "$prompt" | copy_to_clipboard; then
+    echo "oflow: pré-prompt copiado para o clipboard." >&2
+  fi
+  (( failed == 0 )) || die "${failed} check(s) falharam — corrige antes de abrir o MR."
+}
+
+# Campo do JSON no stdin, por uma expressão JS sobre `m` (ex.: m.diff_refs?.base_sha).
+json_get() {
+  node -e 'const m = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    process.stdout.write(String(new Function("m", `return ${process.argv[1]}`)(m) ?? ""));' "$1"
+}
+
+cmd_review() {
+  local url="${1:-}"
+  [[ "$url" =~ ^https?://([^/]+)/(.+)/-/merge_requests/([0-9]+) ]] \
+    || die "uso: oflow.sh review <url-do-MR> (https://<host>/<projeto>/-/merge_requests/<n>)"
+  local host="${BASH_REMATCH[1]}" project="${BASH_REMATCH[2]}" iid="${BASH_REMATCH[3]}"
+  command -v glab >/dev/null 2>&1 || die "o review precisa do glab instalado e autenticado em ${host}."
+
+  # O review usa os padrões e o código deste clone: tem de ser o projeto do MR.
+  local origin
+  origin="$(git remote get-url "$REMOTE")"
+  origin="${origin%.git}"; origin="${origin#*://}"; origin="${origin#*@}"; origin="${origin/:/\/}"
+  [[ "$origin" == "${host}/${project}" ]] \
+    || die "o MR é de ${host}/${project}, mas o ${REMOTE} deste repositório é ${origin}: corre o review num clone desse projeto."
+
+  local json
+  json="$(glab mr view "$iid" -R "https://${host}/${project}" -F json)" \
+    || die "não foi possível ler o MR !${iid} (sem acesso, ou falta glab auth login --hostname ${host})."
+  local title state source target head base pipeline description
+  title="$(json_get 'm.title' <<<"$json")"
+  state="$(json_get 'm.state' <<<"$json")"
+  source="$(json_get 'm.source_branch' <<<"$json")"
+  target="$(json_get 'm.target_branch' <<<"$json")"
+  head="$(json_get 'm.diff_refs?.head_sha || m.sha' <<<"$json")"
+  base="$(json_get 'm.diff_refs?.base_sha' <<<"$json")"
+  pipeline="$(json_get 'm.head_pipeline?.status || "sem pipeline"' <<<"$json")"
+  description="$(json_get 'm.description || "(sem descrição)"' <<<"$json")"
+  [[ "$state" == opened ]] || echo "oflow: o MR !${iid} está ${state}." >&2
+
+  # O ref do MR existe sempre no GitLab, mesmo para MRs de forks; o checkout atual não muda.
+  git fetch --quiet "$REMOTE" "refs/merge-requests/${iid}/head" "$target"
+  [[ -n "$base" ]] || base="$(git merge-base "${REMOTE}/${target}" "$head")"
+
+  local name="" diff files
+  [[ "$source" == "$PREFIX"* ]] && name="${source#"$PREFIX"}"
+  diff="$(git diff "$base" "$head" -- . ':(exclude)package-lock.json')"
+  files="$(git diff --name-only "$base" "$head")"
+  [[ -n "$diff" ]] || echo "oflow: o MR !${iid} não tem diff." >&2
+
+  init_prompt_vars
+  set_var mrId "$iid"
+  set_var mrTitle "$title"
+  set_var mrUrl "$url"
+  set_var mrState "$state"
+  set_var mrDescription "$description"
+  set_var pipelineStatus "$pipeline"
+  set_var sourceBranch "$source"
+  set_var targetBranch "$target"
+  set_var headSha "$head"
+  if [[ -n "$name" ]]; then
+    change_section "$head" "$name" | set_var changeSection
+  else
+    set_var changeSection "## Change OpenSpec"$'\n\n'"(a branch ${source} não é de uma change OpenSpec)"
+  fi
+  patterns_section "$head" <<<"$files" | set_var patternsSection
+  set_var diff "${diff:-(nenhuma mudança encontrada)}"
+
+  local prompt
+  prompt="$(render_template review)"
+
+  if [[ ! -t 1 ]]; then
+    printf '%s\n' "$prompt"
+    return 0
+  fi
+  local file
+  file="$(git rev-parse --git-dir)/oflow/$(date +%Y%m%d-%H%M%S)-review-${iid}.md"
+  mkdir -p "$(dirname "$file")"
+  printf '%s\n' "$prompt" >"$file"
+  printf '%s\n' "$prompt" | copy_to_clipboard && echo "oflow: pré-prompt copiado para o clipboard."
+  echo "oflow: pré-prompt guardado em ${file}"
+}
+
 case "${1:-}" in
-  start)   shift; cmd_start "$@" ;;
-  check)   shift; cmd_check "$@" ;;
-  publish) shift; cmd_publish "$@" ;;
-  ship)    shift; cmd_ship "$@" ;;
-  *)       sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  start)    shift; cmd_start "$@" ;;
+  check)    shift; cmd_check "$@" ;;
+  validate) shift; cmd_validate "$@" ;;
+  publish)  shift; cmd_publish "$@" ;;
+  ship)     shift; cmd_ship "$@" ;;
+  review)   shift; cmd_review "$@" ;;
+  *)        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

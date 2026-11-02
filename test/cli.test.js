@@ -102,6 +102,14 @@ describe('sap-btp-kit', () => {
       setManifest((data) => { data.version = '0.0.1'; });
       assert.match(run('init', dest, '--packs', 'cap-patterns').stderr, /alinha-as com `sync`/);
     });
+
+    it('leva a skill review-mr, igual para cada ferramenta, e regista-a no manifesto', () => {
+      assert.equal(run('init', dest).status, 0);
+      const skills = ['.agents', '.claude', '.cursor'].map((dir) => `${dir}/skills/review-mr/SKILL.md`);
+      const { files } = manifest();
+      for (const skill of skills) assert.ok(files[skill], `${skill} fora do manifesto`);
+      assert.equal(new Set(skills.map(read)).size, 1, 'as cópias da skill review-mr divergem');
+    });
   });
 
   describe('sync', () => {

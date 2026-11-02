@@ -31,8 +31,10 @@ branch própria `change/<nome-da-change>` e entregue num Merge Request para revi
    proposta. Voltar a correr o `start` na mesma branch só commita as alterações da proposta.
 2. **Implementação** — skill de apply do OpenSpec, seguindo os padrões acima; commits em
    Conventional Commits. Se a branch atual não for `change/<nome>` (ex.: proposta escrita à mão),
-   o apply corre o `start` antes de alterar código. Antes de dar a última task por concluída,
-   corre `scripts/oflow.sh check` (lint e testes) e corrige o que falhar. No CAP (`db/`, `srv/`),
+   o apply corre o `start` antes de alterar código. Com as tasks feitas, corre
+   `scripts/oflow.sh validate` (lint, testes e tasks) e segue o pré-prompt de auto-revisão que ele
+   imprime (escopo, riscos e veredito Aprovado, Aprovado com ressalvas ou Bloqueado); corrige o que
+   falhar ou bloquear. No CAP (`db/`, `srv/`),
    os testes unitários são escritos durante cada task, no mesmo commit do código, em
    `test/model/<Entidade>BO.test.js` (um ficheiro por modelo; ver
    `docs/patterns/cap/testing.md`). **Nas apps Fiori não se exigem testes**: o portão é
@@ -43,6 +45,13 @@ branch própria `change/<nome-da-change>` e entregue num Merge Request para revi
 Sem agente, o passo 3 é `scripts/oflow.sh ship`, que também corre o check. A configuração que liga as skills do OpenSpec a
 este fluxo está em `openspec/config.yaml`; os `SKILL.md` gerados pelo `openspec init` não devem ser
 editados, porque o `openspec update` sobrescreve-os.
+
+## Review de um MR
+
+Quando te pedirem para rever um Merge Request a partir da URL, corre
+`scripts/oflow.sh review <url-do-MR>` (skill `review-mr`) e segue o pré-prompt que ele imprime: o
+MR, a change OpenSpec da branch, os padrões das camadas tocadas, o diff e as instruções do review.
+O review só lê: não faças checkout, não comentes no MR nem alteres código.
 
 ## Convenção de idioma
 

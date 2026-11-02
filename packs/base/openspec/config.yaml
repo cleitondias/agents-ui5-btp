@@ -24,7 +24,8 @@ operations:
       - "Fluxo do projeto: 1 tarefa = 1 change = 1 branch change/<nome-da-change> = 1 MR."
       - "A branch change/<nome-da-change> é criada no fim do propose. Antes de alterar código, confirma que é a branch atual; se não for (ex.: proposta escrita à mão), corre `scripts/oflow.sh start <nome-da-change>`."
       - "Faz commit das alterações de código no fim de cada grupo de tasks, usando Conventional Commits."
-      - "Antes de marcar a última task como concluída, corre `scripts/oflow.sh check` (lint e testes do projeto) e corrige o que falhar. Uma change com check a falhar não está pronta. No CAP (db/, srv/), escreve os testes durante cada task, no mesmo commit do código, em test/model/<Entidade>BO.test.js e seguindo docs/patterns/cap/testing.md. Nas apps Fiori (Elements ou Freestyle) não se exigem testes: o portão é só o lint; a lógica de negócio testável fica no CAP."
+      - "No CAP (db/, srv/), escreve os testes durante cada task, no mesmo commit do código, em test/model/<Entidade>BO.test.js e seguindo docs/patterns/cap/testing.md. Nas apps Fiori (Elements ou Freestyle) não se exigem testes: o portão é só o lint; a lógica de negócio testável fica no CAP."
+      - "Depois de implementar e marcar todas as tasks, corre `scripts/oflow.sh validate`: corre o lint e os testes do projeto, confere as tasks e imprime um pré-prompt de auto-revisão da change (escopo, riscos e veredito). Corrige o que falhar e segue o pré-prompt, mostrando o veredito ao utilizador. Uma change com o validate a falhar ou com veredito Bloqueado não está pronta: corrige e volta a correr o validate."
   archive:
     guidance:
       - "Antes de arquivar, garante que todo o código da change está commitado e que `scripts/oflow.sh check` passa (o publish volta a corrê-lo e falha se não passar)."

@@ -12,7 +12,7 @@ projeto, por isso montar um projeto é copiar os packs desejados uns por cima do
 
 | Pack | O que leva para o projeto |
 |---|---|
-| [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/` (config, `specs/`, `changes/`), skills do OpenSpec em `.agents/skills/` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR) |
+| [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/` (config, `specs/`, `changes/`), skills do OpenSpec em `.agents/skills/`, a skill `review-mr` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR, auto-revisão e review de MR pela URL) |
 | [`cap-app`](packs/cap-app/) | Código do template SAP CAP — `db/`, `srv/`, `mta.yaml`, `xs-security.json`, lint (ESLint) e testes (`cds test` + `@cap-js/cds-test`) em `test/` (inclui `cap-patterns`) |
 | [`cap-patterns`](packs/cap-patterns/) | [`docs/patterns/cap/`](packs/cap-patterns/docs/patterns/cap/) — modelo de domínio, services por perfil de acesso, Business Objects, erros, estilo, testes |
 | [`fiori-elements-patterns`](packs/fiori-elements-patterns/) | [`docs/patterns/fiori-elements/`](packs/fiori-elements-patterns/docs/patterns/fiori-elements/) — anotações CDS, manifest, controller extensions, fragments |
@@ -174,7 +174,8 @@ nenhum agente específico.
 |---|---|---|
 | Proposta | skill `openspec-propose` | escrever `openspec/changes/<nome>/` |
 | Branch | automática no fim do propose (corre `oflow.sh start` depois do `tasks.md`) | `scripts/oflow.sh start <nome>` |
-| Implementação | skill `openspec-apply-change` (corre `oflow.sh check` antes de concluir) | commits normais + `scripts/oflow.sh check` |
+| Implementação | skill `openspec-apply-change` (corre `oflow.sh validate` antes de concluir) | commits normais + `scripts/oflow.sh validate` |
+| Review do MR | skill `review-mr` (corre `oflow.sh review <url>`) | `scripts/oflow.sh review <url>` e colar o pré-prompt num agente |
 | Archive + MR | skill `openspec-archive-change` (corre `oflow.sh publish` no fim) | `scripts/oflow.sh ship` |
 
 O que liga as skills do OpenSpec ao fluxo e aos padrões está no `openspec/config.yaml` da base:
@@ -193,10 +194,33 @@ skill, o apply continua a correr o `start` antes de alterar código.
 
 Nada chega ao MR sem passar pelo `scripts/oflow.sh check`: ele corre os scripts `lint` e `test`
 do `package.json` da raiz do projeto, quando existirem, e falha ao primeiro erro. O `publish` e o
-`ship` correm-no antes de fazer push, e a guidance do `apply` manda o agente corrê-lo antes de dar
-a última task por concluída — assim a afirmação "está pronto" do agente é verificada, e não só
-declarada. Num projeto sem esses scripts o check passa com aviso; `OFLOW_SKIP_CHECK=1` salta-o, só
-para emergências.
+`ship` correm-no antes de fazer push, e o `validate` (abaixo) corre os mesmos scripts no fim do
+`apply` — assim a afirmação "está pronto" do agente é verificada, e não só declarada. Num projeto
+sem esses scripts o check passa com aviso; `OFLOW_SKIP_CHECK=1` salta-o, só para emergências.
+
+### Auto-revisão antes do MR (`oflow.sh validate`)
+
+Com as tasks feitas, a guidance do `apply` manda o agente correr `scripts/oflow.sh validate`. O
+comando:
+
+- corre os checks: `lint` e `test` do `package.json` (como o `check`) e as tasks do `tasks.md`,
+  todas concluídas;
+- imprime um **pré-prompt de auto-revisão** com a change (proposta, specs, design e tasks), os
+  `README.md` dos padrões das camadas tocadas, o resultado dos checks, os ficheiros modificados e as
+  instruções: escopo (cobre o que a change pede, nada além, nenhuma parte da spec sem cobertura),
+  riscos (efeitos colaterais não descritos, interfaces partilhadas alteradas, padrões quebrados) e
+  um veredito — **Aprovado**, **Aprovado com ressalvas** ou **Bloqueado**;
+- num terminal, copia também o pré-prompt para o clipboard, para colar num agente;
+- sai com erro se algum check falhar.
+
+O agente segue o pré-prompt e corrige o que falhar ou o que der Bloqueado antes de dar a change
+por concluída.
+
+Os pré-prompts do `validate` e do `review` (abaixo) vêm de templates em `scripts/prompts/`
+(`validate.md` e `review.md`), com placeholders `<%= nome %>` que o `oflow.sh` preenche com o
+contexto recolhido (por exemplo `<%= changeSection %>`, `<%= checksSection %>` ou `<%= diff %>`).
+Um projeto pode ajustar as instruções editando o template: o `sync` mantém a alteração local e,
+se o kit também mudar o template, deixa a nova versão em `.kit-new`.
 
 O `cap-app` já traz os dois scripts: `npm run lint` (ESLint com a config recomendada do CAP, sem
 warnings tolerados) e `npm test` (`cds test`, o runner do `@sap/cds-dk`, com [`@cap-js/cds-test`](https://cap.cloud.sap/docs/node.js/cds-test),
@@ -216,6 +240,33 @@ O MR é aberto com o [`glab`](https://gitlab.com/gitlab-org/cli) quando ele est�
 autenticado, o que permite usar a descrição completa e definir reviewers
 (`OFLOW_REVIEWERS=joao,maria`). Sem o `glab`, o MR é aberto pelas push options do GitLab, sem
 configuração adicional.
+
+### Review do MR (`oflow.sh review`)
+
+Quem revê um MR corre, num clone do projeto do MR:
+
+```bash
+scripts/oflow.sh review https://git.pt-ibl-inetum.group/<grupo>/<projeto>/-/merge_requests/42
+```
+
+Com agente, é o mesmo pela skill `review-mr`: `/review-mr <url>` no Claude Code, ou "revê este MR:
+<url>" no Codex e no Cursor. O comando:
+
+- lê o MR com o `glab` e o código com `git fetch` do `refs/merge-requests/<n>/head`, **sem checkout**:
+  a branch e o trabalho em curso de quem revê não mudam;
+- recusa MRs de outro projeto que não o do `origin`, porque os padrões e o código têm de ser os do
+  MR;
+- monta um **pré-prompt de code review** com o MR (título, descrição, branches, estado, pipeline),
+  a change OpenSpec da branch `change/<nome>`, os `README.md` dos padrões das camadas tocadas, o
+  diff completo e as instruções: naming e estrutura, aderência aos padrões, acoplamento e contratos
+  e um veredito — **Aprovado**, **Aprovado com ressalvas** ou **Bloqueado**;
+- sem terminal (quando é um agente a corrê-lo), imprime o pré-prompt; num terminal, guarda-o em
+  `.git/oflow/<data>-review-<n>.md` e copia-o para o clipboard, para colar num agente.
+
+O review só lê: não comenta no MR, não aprova e não faz merge. Precisa do `glab` autenticado (ver
+abaixo). A skill vai em `.agents/skills/`, `.claude/skills/` e `.cursor/skills/`, com o mesmo
+conteúdo, e o `sync` mantém-na atualizada; ao alterá-la no kit, altere as três cópias (o `npm test`
+falha se divergirem).
 
 ### Configurar o `glab`
 
@@ -250,8 +301,8 @@ configuração adicional.
 
 Este repositório usa o mesmo fluxo nas suas próprias alterações: o [`openspec/`](openspec/) e o
 [`.agents/`](.agents/) da raiz servem para desenvolver o kit e **não são distribuídos**. O
-[`scripts/oflow.sh`](scripts/oflow.sh) da raiz é um link para o da base, para existir uma única
-versão.
+[`scripts/oflow.sh`](scripts/oflow.sh) e os [`scripts/prompts/`](scripts/prompts/) da raiz são links
+para os da base, para existir uma única versão.
 
 As skills e pastas do OpenSpec em `packs/base/` são geradas pelo `openspec init --tools agents
 packs/base`. Ao atualizar o OpenSpec, regenere-as com `openspec update packs/base` (o
