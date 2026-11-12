@@ -6,9 +6,9 @@
 
 ```js
 sap.ui.define([
-  "inetum/mytemplate/controller/BaseController"
+  "cgutech/mytemplate/controller/BaseController"
 ], function (BaseController) {
-  return BaseController.extend("inetum.mytemplate.controller.Home", {
+  return BaseController.extend("cgutech.mytemplate.controller.Home", {
     onInit: function () { /* ... */ }
   });
 });
@@ -58,7 +58,7 @@ onOpenDialog: function (sDialogId) {
 },
 _createFragment: function (sFragment) {
   return Fragment.load({
-    name: `inetum.mytemplate.view.fragments.${sFragment}`,
+    name: `cgutech.mytemplate.view.fragments.${sFragment}`,
     id: this.getView().getId(),
     controller: this
   });

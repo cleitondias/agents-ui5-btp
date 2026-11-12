@@ -1,4 +1,4 @@
-# Patterns — SAP Fiori Elements v4 (Inetum)
+# Patterns — SAP Fiori Elements v4 (Cgutech)
 
 > Padrões de arquitetura e código para apps SAP Fiori Elements (v4, `sap.fe.templates`) geradas
 > sobre um backend CAP.

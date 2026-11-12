@@ -1,6 +1,6 @@
 # SAP BTP Skills and Agents
 
-Kit de referência Inetum para projetos SAP BTP desenvolvidos com agentes de IA de codificação
+Kit de referência Cgutech para projetos SAP BTP desenvolvidos com agentes de IA de codificação
 (Claude Code, Codex CLI, Cursor, ou qualquer outro que leia `AGENTS.md`): padrões de código,
 template de projeto CAP e fluxo de trabalho com OpenSpec e Merge Requests no GitLab.
 
@@ -25,7 +25,7 @@ de entrada da tecnologia (índice, ordem de aplicação, checklist e arquitetura
 ## Montar um projeto
 
 ```bash
-npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.3.0 \
+npx git+https://git.pt-ibl-cgutech.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.3.0 \
   init <destino> --packs <packs> --tools <ferramentas-de-ia>
 ```
 
@@ -149,8 +149,8 @@ tudo, e também para correr o seu agente de IA. Não use PowerShell nem CMD no d
    ```bash
    read -rsp "Token: " GITLAB_TOKEN; echo
    cat >> ~/.npmrc <<EOF
-   @sap-technology:registry=https://git.pt-ibl-inetum.group/api/v4/packages/npm/
-   //git.pt-ibl-inetum.group/api/v4/packages/npm/:_authToken=$GITLAB_TOKEN
+   @sap-technology:registry=https://git.pt-ibl-cgutech.group/api/v4/packages/npm/
+   //git.pt-ibl-cgutech.group/api/v4/packages/npm/:_authToken=$GITLAB_TOKEN
    EOF
    unset GITLAB_TOKEN
    ```
@@ -246,7 +246,7 @@ configuração adicional.
 Quem revê um MR corre, num clone do projeto do MR:
 
 ```bash
-scripts/oflow.sh review https://git.pt-ibl-inetum.group/<grupo>/<projeto>/-/merge_requests/42
+scripts/oflow.sh review https://git.pt-ibl-cgutech.group/<grupo>/<projeto>/-/merge_requests/42
 ```
 
 Com agente, é o mesmo pela skill `review-mr`: `/review-mr <url>` no Claude Code, ou "revê este MR:
@@ -273,7 +273,7 @@ falha se divergirem).
 1. Instale o `glab` (`brew install glab` no macOS; outras plataformas na
    [documentação](https://gitlab.com/gitlab-org/cli#installation)).
 2. Crie um Personal Access Token em
-   <https://git.pt-ibl-inetum.group/-/user_settings/personal_access_tokens> (*Avatar → Edit
+   <https://git.pt-ibl-cgutech.group/-/user_settings/personal_access_tokens> (*Avatar → Edit
    profile → Access tokens → Add new token*):
    - **Token name**: por exemplo `glab`;
    - **Expiration date**: a que a política da instância permitir;
@@ -283,17 +283,17 @@ falha se divergirem).
 3. Autentique o `glab` na instância:
 
    ```bash
-   glab auth login --hostname git.pt-ibl-inetum.group
+   glab auth login --hostname git.pt-ibl-cgutech.group
    ```
 
    Escolha **Token**, cole o token e, como protocolo do git, **HTTPS** (o mesmo do `origin`).
    Sem interação, o equivalente é:
 
    ```bash
-   glab auth login --hostname git.pt-ibl-inetum.group --token <token>
+   glab auth login --hostname git.pt-ibl-cgutech.group --token <token>
    ```
 
-4. Confirme com `glab auth status --hostname git.pt-ibl-inetum.group`. A partir daqui, o
+4. Confirme com `glab auth status --hostname git.pt-ibl-cgutech.group`. A partir daqui, o
    `oflow.sh` passa a abrir o MR pelo `glab` (para forçar um dos modos, use
    `OFLOW_MR_VIA=glab` ou `OFLOW_MR_VIA=push`).
 

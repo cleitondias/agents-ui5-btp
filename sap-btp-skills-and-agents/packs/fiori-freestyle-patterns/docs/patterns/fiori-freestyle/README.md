@@ -1,4 +1,4 @@
-# Patterns — SAPUI5 Freestyle (Inetum)
+# Patterns — SAPUI5 Freestyle (Cgutech)
 
 > Padrões de arquitetura e código para apps SAPUI5 Freestyle (não Fiori Elements).
 > Os exemplos usam nomes/entidades genéricos — não são referência a um projeto específico.
