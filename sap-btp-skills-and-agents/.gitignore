@@ -1,0 +1,7 @@
+# Regras do template estão em packs/cap-app/gitignore (o npm não publica ficheiros .gitignore)
+node_modules/
+gen/
+*.tgz
+*.db
+*.sqlite
+.DS_Store

@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+// sap-btp-kit — monta e atualiza projetos a partir dos packs deste repositório.
+import { parseArgs } from 'node:util';
+import { KitError, VERSION } from '../lib/kit.js';
+import { init } from '../lib/init.js';
+import { sync } from '../lib/sync.js';
+import { upgrade } from '../lib/upgrade.js';
+
+const USAGE = `Uso:
+  sap-btp-kit init <destino> [--packs <lista>] [--tools <lista>] [--name <nome>]
+  sap-btp-kit sync [destino] [--dry-run]
+  sap-btp-kit upgrade
+  sap-btp-kit help
+  sap-btp-kit --version
+
+init     monta (ou complementa) um projeto. Ficheiros existentes nunca são sobrescritos: o
+        AGENTS.md recebe as instruções da base no fim, o resto é ignorado e listado.
+          --packs  packs além da base, separados por vírgula:
+                     cap-app                    código do template CAP (inclui cap-patterns)
+                     cap-patterns               docs/patterns/cap/
+                     fiori-elements-patterns    docs/patterns/fiori-elements/
+                     fiori-freestyle-patterns   docs/patterns/fiori-freestyle/
+          --tools  ferramentas de IA com pasta própria de skills (ex.: claude,cursor), geradas
+                   com \`openspec init\`; as skills em .agents/skills/ vêm sempre na base
+          --name   nome do projeto (kebab-case) que substitui o placeholder \`cap-template\` do
+                   cap-app; por omissão, o nome da pasta de destino
+
+sync     atualiza um PROJETO: aplica a versão do kit em execução a uma pasta com
+         .sap-btp-kit.json (por omissão, a pasta atual). Ficheiros alterados no projeto nunca são
+         substituídos: em conflito, a nova versão fica em <ficheiro>.kit-new. O código do cap-app
+         não é atualizado. \`update\` é um nome antigo deste comando e vai sair.
+           --dry-run  só mostra o que mudaria
+
+upgrade  atualiza a própria CLI, instalada com \`npm i -g\`, para a versão mais recente. Não altera
+         projetos: corre o \`sync\` a seguir em cada um.
+
+help     mostra esta ajuda (também com -h ou --help)
+
+-v, --version  mostra a versão do kit`;
+
+const OPTIONS = {
+  packs: { type: 'string', default: '' },
+  tools: { type: 'string', default: '' },
+  name: { type: 'string' },
+  'dry-run': { type: 'boolean', default: false },
+  help: { type: 'boolean', short: 'h', default: false },
+  version: { type: 'boolean', short: 'v', default: false },
+};
+
+function main() {
+  const [command, ...rest] = process.argv.slice(2);
+  if (command === '-v' || command === '--version') {
+    console.log(VERSION);
+    return 0;
+  }
+  if (command === undefined || ['help', '-h', '--help'].includes(command)) {
+    console.log(USAGE);
+    return command === undefined ? 1 : 0;
+  }
+  const { values, positionals } = parseArgs({ args: rest, options: OPTIONS, allowPositionals: true });
+  if (values.help) {
+    console.log(USAGE);
+    return 0;
+  }
+  if (values.version) {
+    console.log(VERSION);
+    return 0;
+  }
+  if (positionals.length > 1) throw new KitError('só um destino é aceite.');
+
+  if (command === 'update') console.error('sap-btp-kit: `update` vai sair; usa `sync`.');
+  if (command === 'sync' || command === 'update') {
+    sync(positionals[0] ?? '.', { dryRun: values['dry-run'] });
+    return 0;
+  }
+  if (command === 'upgrade' && positionals.length === 0) {
+    upgrade();
+    return 0;
+  }
+  if (command === 'init' && positionals.length === 1) {
+    init(positionals[0], values);
+    return 0;
+  }
+  console.error(USAGE);
+  return 1;
+}
+
+try {
+  process.exitCode = main();
+} catch (error) {
+  if (!(error instanceof KitError) && error.code?.startsWith('ERR_PARSE_ARGS') !== true) throw error;
+  console.error(`sap-btp-kit: ${error.message}`);
+  process.exitCode = 1;
+}

@@ -1,0 +1,324 @@
+# SAP BTP Skills and Agents
+
+Kit de referência Inetum para projetos SAP BTP desenvolvidos com agentes de IA de codificação
+(Claude Code, Codex CLI, Cursor, ou qualquer outro que leia `AGENTS.md`): padrões de código,
+template de projeto CAP e fluxo de trabalho com OpenSpec e Merge Requests no GitLab.
+
+## Estrutura
+
+O kit é composto por **packs**. Cada pack tem exatamente a estrutura com que fica na raiz do
+projeto, por isso montar um projeto é copiar os packs desejados uns por cima dos outros. A CLI
+`sap-btp-kit` faz essa cópia e depois mantém o projeto atualizado com novas versões do kit.
+
+| Pack | O que leva para o projeto |
+|---|---|
+| [`base`](packs/base/) | **Sempre incluído.** `AGENTS.md`, `openspec/` (config, `specs/`, `changes/`), skills do OpenSpec em `.agents/skills/`, a skill `review-mr` e `scripts/oflow.sh` (fluxo OpenSpec → branch → MR, auto-revisão e review de MR pela URL) |
+| [`cap-app`](packs/cap-app/) | Código do template SAP CAP — `db/`, `srv/`, `mta.yaml`, `xs-security.json`, lint (ESLint) e testes (`cds test` + `@cap-js/cds-test`) em `test/` (inclui `cap-patterns`) |
+| [`cap-patterns`](packs/cap-patterns/) | [`docs/patterns/cap/`](packs/cap-patterns/docs/patterns/cap/) — modelo de domínio, services por perfil de acesso, Business Objects, erros, estilo, testes |
+| [`fiori-elements-patterns`](packs/fiori-elements-patterns/) | [`docs/patterns/fiori-elements/`](packs/fiori-elements-patterns/docs/patterns/fiori-elements/) — anotações CDS, manifest, controller extensions, fragments |
+| [`fiori-freestyle-patterns`](packs/fiori-freestyle-patterns/) | [`docs/patterns/fiori-freestyle/`](packs/fiori-freestyle-patterns/docs/patterns/fiori-freestyle/) — controllers, two-way binding OData v4, formatters, views/fragments |
+
+O `AGENTS.md` da base é um só para qualquer combinação: manda o agente ler o `README.md` de cada
+pasta em `docs/patterns/` que exista no projeto. O `README.md` de cada pasta de padrões é o ponto
+de entrada da tecnologia (índice, ordem de aplicação, checklist e arquitetura de referência).
+
+## Montar um projeto
+
+```bash
+npx git+https://git.pt-ibl-inetum.group/sap-technology/tools/sap-btp-skills-and-agents.git#v0.3.0 \
+  init <destino> --packs <packs> --tools <ferramentas-de-ia>
+```
+
+A forma curta dos exemplos abaixo, `sap-btp-kit`, vale com o pacote instalado
+(`npm i -g @sap-technology/sap-btp-kit`, publicado no registry do GitLab, com o escopo
+`@sap-technology` configurado no `.npmrc`). A partir de um clone deste repositório,
+`scripts/new-project.sh` é um atalho para o `init`, com os mesmos argumentos: dentro desse clone o
+`npx` falha com `sap-btp-kit: command not found`, por isso use o atalho ou corra o `npx` noutra pasta.
+No Windows, veja antes [Configurar no Windows](#configurar-no-windows).
+
+Para listar os comandos e as opções, use `sap-btp-kit help`; para ver a versão, `sap-btp-kit -v`.
+
+| Situação | Comando |
+|---|---|
+| Projeto CAP a partir do template | `sap-btp-kit init ../vendas-api --packs cap-app --tools codex` |
+| Só os padrões, num projeto existente | `sap-btp-kit init ../meu-projeto --packs cap-patterns` |
+| Fullstack (CAP + Fiori Elements) | `sap-btp-kit init ../vendas --packs cap-app,fiori-elements-patterns --tools claude,cursor` |
+| Projeto só Fiori | `sap-btp-kit init ../app-vendas --packs fiori-freestyle-patterns` |
+
+O `init`:
+
+- copia sempre a `base`, e o `cap-patterns` sempre que houver `cap-app`;
+- substitui o placeholder `cap-template` do `cap-app` pelo nome do projeto (pasta de destino, ou
+  `--name`);
+- **nunca sobrescreve** ficheiros que já existam no destino: um `AGENTS.md` existente recebe as
+  instruções da base no fim; os outros conflitos são listados para revisão manual;
+- leva sempre as skills do OpenSpec em `.agents/skills/`, lidas pelo Codex e por agentes que usam
+  `.agents/`; com `--tools claude,cursor` (ferramentas com pasta própria) corre também
+  `openspec init`, que gera as skills dessas ferramentas e mantém o `openspec/config.yaml` da base;
+- grava `.sap-btp-kit.json`, que deve ser commitado: regista a versão do kit, os packs e o hash de
+  cada ficheiro atualizável, tal como veio do kit.
+
+Num projeto Fiori, gera-se primeiro a app pela tooling padrão (`@sap/generator-fiori-elements` ou
+SAP Fiori generator / `@ui5/cli`) e depois aplica-se o pack de padrões por cima.
+
+Sem a CLI, o equivalente é `cp -R packs/base/. packs/<pack>/. <destino>/`, seguido da troca do
+placeholder, de renomear o `gitignore` do `cap-app` para `.gitignore` (e do
+`openspec init --tools ...`, se for preciso). Um projeto montado assim não tem manifesto.
+
+## Atualizar um projeto
+
+```bash
+sap-btp-kit sync [destino] --dry-run   # só mostra o que mudaria
+sap-btp-kit sync [destino]
+```
+
+O `sync` atualiza o **projeto**, por isso corre dentro dele ou com o caminho dele como argumento.
+Ele leva o projeto para a versão do kit que está a ser executada, comparando o manifesto, o disco e
+o kit:
+
+| Situação do ficheiro | Resultado |
+|---|---|
+| Sem alterações no projeto | Substituído pela nova versão |
+| Alterado no projeto, igual no kit | Mantido |
+| Alterado no projeto e no kit | Mantido; a nova versão fica em `<ficheiro>.kit-new` para reconciliar à mão e apagar |
+| Novo no kit | Copiado |
+| Apagado no projeto | Continua apagado |
+| Saiu do kit | Mantido no projeto, com aviso |
+
+Um conflito só é assinalado uma vez: a seguir, o ficheiro conta como alteração local. O código do
+`cap-app` nunca é atualizado, porque depois do `init` pertence ao projeto; o `sync` cobre os
+restantes packs (`AGENTS.md`, `openspec/config.yaml`, skills, `oflow.sh` e `docs/patterns/`). Um
+projeto já existente sem manifesto é adotado correndo o `init` nele. Quem acrescenta packs depois
+tem de estar na mesma versão do kit, por isso corre primeiro o `sync`.
+
+## Atualizar a CLI
+
+O `upgrade` atualiza a **própria CLI**, sem tocar em projetos. Atualize primeiro a CLI e depois
+cada projeto:
+
+```bash
+sap-btp-kit upgrade
+sap-btp-kit sync vendas
+```
+
+| Como a CLI é executada | Como atualizar |
+|---|---|
+| Instalada com `npm i -g` | `sap-btp-kit upgrade` |
+| Com `npx` | Peça a versão: `npx @sap-technology/sap-btp-kit@latest sync` |
+| A partir de um clone deste repositório | `git pull` |
+
+A instalação global funciona em qualquer pasta, inclusive dentro de um clone deste repositório.
+O nome antigo `update` ainda funciona como `sync`, com um aviso, mas vai sair.
+
+## Configurar no Windows
+
+> Estes passos ainda não foram testados em Windows. O kit só foi validado em macOS.
+
+O `oflow.sh` e o `new-project.sh` são scripts bash, por isso, no Windows, use o **Git Bash** para
+tudo, e também para correr o seu agente de IA. Não use PowerShell nem CMD no dia a dia do projeto.
+
+1. No PowerShell, instale as ferramentas. Depois feche o terminal, para o `PATH` ser atualizado:
+
+   ```powershell
+   winget install Git.Git
+   winget install OpenJS.NodeJS.LTS
+   winget install glab.glab
+   ```
+
+2. Abra o **Git Bash**. Os passos seguintes correm todos nele. Confirme que o Node é 20 ou superior e
+   instale o OpenSpec:
+
+   ```bash
+   node --version
+   npm i -g @fission-ai/openspec
+   ```
+
+3. **Antes de clonar qualquer repositório**, impeça o git de converter as quebras de linha para CRLF:
+
+   ```bash
+   git config --global core.autocrlf input
+   ```
+
+   Com CRLF, o `oflow.sh` deixa de correr no bash, e o `sync` passa a tratar os ficheiros como
+   alterados no projeto. Um repositório já clonado com CRLF tem de ser clonado de novo.
+
+4. Crie um Personal Access Token e autentique o `glab`, como em [Configurar o `glab`](#configurar-o-glab).
+
+5. Configure o npm para o registry do kit, com o mesmo token. O token não aparece enquanto o cola:
+
+   ```bash
+   read -rsp "Token: " GITLAB_TOKEN; echo
+   cat >> ~/.npmrc <<EOF
+   @sap-technology:registry=https://git.pt-ibl-inetum.group/api/v4/packages/npm/
+   //git.pt-ibl-inetum.group/api/v4/packages/npm/:_authToken=$GITLAB_TOKEN
+   EOF
+   unset GITLAB_TOKEN
+   ```
+
+   O ficheiro fica em `C:\Users\<utilizador>\.npmrc`, com o token em texto puro: não o partilhe nem
+   o commite. Quando o token for renovado, substitua-o nesse ficheiro.
+
+6. Confirme, numa pasta **fora** de um clone deste repositório, que o comando mostra a versão do kit:
+
+   ```bash
+   npm view @sap-technology/sap-btp-kit version
+   ```
+
+## Fluxo de trabalho (OpenSpec → branch → MR)
+
+Cada tarefa é uma change [OpenSpec](https://github.com/Fission-AI/OpenSpec), desenvolvida numa
+branch própria `change/<nome>` e entregue num Merge Request para review. O fluxo não depende de
+nenhum agente específico.
+
+| Etapa | Com agente | Sem agente |
+|---|---|---|
+| Proposta | skill `openspec-propose` | escrever `openspec/changes/<nome>/` |
+| Branch | automática no fim do propose (corre `oflow.sh start` depois do `tasks.md`) | `scripts/oflow.sh start <nome>` |
+| Implementação | skill `openspec-apply-change` (corre `oflow.sh validate` antes de concluir) | commits normais + `scripts/oflow.sh validate` |
+| Review do MR | skill `review-mr` (corre `oflow.sh review <url>`) | `scripts/oflow.sh review <url>` e colar o pré-prompt num agente |
+| Archive + MR | skill `openspec-archive-change` (corre `oflow.sh publish` no fim) | `scripts/oflow.sh ship` |
+
+O que liga as skills do OpenSpec ao fluxo e aos padrões está no `openspec/config.yaml` da base:
+`context` (ler `docs/patterns/`), `rules` (design e tasks ancorados nos padrões; a regra de
+`tasks` cria a branch no fim do propose) e `operations` (apply confirma a branch; push e MR no
+archive). Não edite os `SKILL.md` gerados, porque o `openspec update` sobrescreve-os.
+
+A branch nasce no propose, e não no apply, para que a proposta fique commitada e possa ser revista
+(e partilhada) antes de começar a implementação. O OpenSpec só aceita `operations` para `apply` e
+`archive`, e por isso o gatilho é uma regra do último artefacto (`tasks`). O `start` é
+idempotente: na própria branch só commita as alterações da proposta (por exemplo, depois de um
+`openspec-update-change`), e se a branch já existir muda para ela. Para propostas escritas sem a
+skill, o apply continua a correr o `start` antes de alterar código.
+
+### Portão de qualidade (`oflow.sh check`)
+
+Nada chega ao MR sem passar pelo `scripts/oflow.sh check`: ele corre os scripts `lint` e `test`
+do `package.json` da raiz do projeto, quando existirem, e falha ao primeiro erro. O `publish` e o
+`ship` correm-no antes de fazer push, e o `validate` (abaixo) corre os mesmos scripts no fim do
+`apply` — assim a afirmação "está pronto" do agente é verificada, e não só declarada. Num projeto
+sem esses scripts o check passa com aviso; `OFLOW_SKIP_CHECK=1` salta-o, só para emergências.
+
+### Auto-revisão antes do MR (`oflow.sh validate`)
+
+Com as tasks feitas, a guidance do `apply` manda o agente correr `scripts/oflow.sh validate`. O
+comando:
+
+- corre os checks: `lint` e `test` do `package.json` (como o `check`) e as tasks do `tasks.md`,
+  todas concluídas;
+- imprime um **pré-prompt de auto-revisão** com a change (proposta, specs, design e tasks), os
+  `README.md` dos padrões das camadas tocadas, o resultado dos checks, os ficheiros modificados e as
+  instruções: escopo (cobre o que a change pede, nada além, nenhuma parte da spec sem cobertura),
+  riscos (efeitos colaterais não descritos, interfaces partilhadas alteradas, padrões quebrados) e
+  um veredito — **Aprovado**, **Aprovado com ressalvas** ou **Bloqueado**;
+- num terminal, copia também o pré-prompt para o clipboard, para colar num agente;
+- sai com erro se algum check falhar.
+
+O agente segue o pré-prompt e corrige o que falhar ou o que der Bloqueado antes de dar a change
+por concluída.
+
+Os pré-prompts do `validate` e do `review` (abaixo) vêm de templates em `scripts/prompts/`
+(`validate.md` e `review.md`), com placeholders `<%= nome %>` que o `oflow.sh` preenche com o
+contexto recolhido (por exemplo `<%= changeSection %>`, `<%= checksSection %>` ou `<%= diff %>`).
+Um projeto pode ajustar as instruções editando o template: o `sync` mantém a alteração local e,
+se o kit também mudar o template, deixa a nova versão em `.kit-new`.
+
+O `cap-app` já traz os dois scripts: `npm run lint` (ESLint com a config recomendada do CAP, sem
+warnings tolerados) e `npm test` (`cds test`, o runner do `@sap/cds-dk`, com [`@cap-js/cds-test`](https://cap.cloud.sap/docs/node.js/cds-test),
+com um smoke test em `test/services.test.js` que arranca o servidor e chama cada service). No CAP,
+os testes são escritos durante as tasks, um ficheiro por modelo em
+`test/model/<Entidade>BO.test.js`, seguindo o padrão
+[`testing.md`](packs/cap-patterns/docs/patterns/cap/testing.md).
+
+**Nas apps Fiori não se exigem testes.** Em Fiori Elements o código próprio é quase só anotações
+e manifest, e em Freestyle a lógica de negócio deve estar no CAP, onde já é testada; OPA5 e QUnit
+mantidos por agente custam mais do que apanham. O portão de uma app Fiori é só o lint: acrescente
+`lint` (`ui5lint`) ao `package.json` da raiz para o check o apanhar (o check só olha para o
+`package.json` da raiz). Quem quiser testes de UI pode acrescentar um script `test`, e o check
+passa a corrê-lo, mas isso é opção do projeto, não requisito do fluxo.
+
+O MR é aberto com o [`glab`](https://gitlab.com/gitlab-org/cli) quando ele está instalado e
+autenticado, o que permite usar a descrição completa e definir reviewers
+(`OFLOW_REVIEWERS=joao,maria`). Sem o `glab`, o MR é aberto pelas push options do GitLab, sem
+configuração adicional.
+
+### Review do MR (`oflow.sh review`)
+
+Quem revê um MR corre, num clone do projeto do MR:
+
+```bash
+scripts/oflow.sh review https://git.pt-ibl-inetum.group/<grupo>/<projeto>/-/merge_requests/42
+```
+
+Com agente, é o mesmo pela skill `review-mr`: `/review-mr <url>` no Claude Code, ou "revê este MR:
+<url>" no Codex e no Cursor. O comando:
+
+- lê o MR com o `glab` e o código com `git fetch` do `refs/merge-requests/<n>/head`, **sem checkout**:
+  a branch e o trabalho em curso de quem revê não mudam;
+- recusa MRs de outro projeto que não o do `origin`, porque os padrões e o código têm de ser os do
+  MR;
+- monta um **pré-prompt de code review** com o MR (título, descrição, branches, estado, pipeline),
+  a change OpenSpec da branch `change/<nome>`, os `README.md` dos padrões das camadas tocadas, o
+  diff completo e as instruções: naming e estrutura, aderência aos padrões, acoplamento e contratos
+  e um veredito — **Aprovado**, **Aprovado com ressalvas** ou **Bloqueado**;
+- sem terminal (quando é um agente a corrê-lo), imprime o pré-prompt; num terminal, guarda-o em
+  `.git/oflow/<data>-review-<n>.md` e copia-o para o clipboard, para colar num agente.
+
+O review só lê: não comenta no MR, não aprova e não faz merge. Precisa do `glab` autenticado (ver
+abaixo). A skill vai em `.agents/skills/`, `.claude/skills/` e `.cursor/skills/`, com o mesmo
+conteúdo, e o `sync` mantém-na atualizada; ao alterá-la no kit, altere as três cópias (o `npm test`
+falha se divergirem).
+
+### Configurar o `glab`
+
+1. Instale o `glab` (`brew install glab` no macOS; outras plataformas na
+   [documentação](https://gitlab.com/gitlab-org/cli#installation)).
+2. Crie um Personal Access Token em
+   <https://git.pt-ibl-inetum.group/-/user_settings/personal_access_tokens> (*Avatar → Edit
+   profile → Access tokens → Add new token*):
+   - **Token name**: por exemplo `glab`;
+   - **Expiration date**: a que a política da instância permitir;
+   - **Scopes**: `api` e `write_repository` (o `glab` exige pelo menos `api`).
+
+   Copie o token logo após criá-lo — o GitLab não o volta a mostrar.
+3. Autentique o `glab` na instância:
+
+   ```bash
+   glab auth login --hostname git.pt-ibl-inetum.group
+   ```
+
+   Escolha **Token**, cole o token e, como protocolo do git, **HTTPS** (o mesmo do `origin`).
+   Sem interação, o equivalente é:
+
+   ```bash
+   glab auth login --hostname git.pt-ibl-inetum.group --token <token>
+   ```
+
+4. Confirme com `glab auth status --hostname git.pt-ibl-inetum.group`. A partir daqui, o
+   `oflow.sh` passa a abrir o MR pelo `glab` (para forçar um dos modos, use
+   `OFLOW_MR_VIA=glab` ou `OFLOW_MR_VIA=push`).
+
+## Desenvolver este repositório
+
+Este repositório usa o mesmo fluxo nas suas próprias alterações: o [`openspec/`](openspec/) e o
+[`.agents/`](.agents/) da raiz servem para desenvolver o kit e **não são distribuídos**. O
+[`scripts/oflow.sh`](scripts/oflow.sh) e os [`scripts/prompts/`](scripts/prompts/) da raiz são links
+para os da base, para existir uma única versão.
+
+As skills e pastas do OpenSpec em `packs/base/` são geradas pelo `openspec init --tools agents
+packs/base`. Ao atualizar o OpenSpec, regenere-as com `openspec update packs/base` (o
+`config.yaml` é mantido) e não as edite à mão.
+
+Ao alterar um pack, mantenha-o com a estrutura de destino (o que está em `packs/<pack>/` é o que
+aparece na raiz do projeto) e evite links entre packs diferentes — o outro pack pode não estar
+instalado. A única exceção é o `.gitignore`, que fica no pack como `gitignore` porque o npm não o
+publica, e a CLI repõe-lhe o nome na cópia.
+
+A CLI está em [`bin/`](bin/) e [`lib/`](lib/), sem dependências (Node 20+), e os testes correm com
+`npm test`. Para lançar uma versão, suba a `version` do `package.json` e crie a tag `v<versão>`.
+Confira o conteúdo do pacote com `npm pack --dry-run`.
+
+## Convenção de idioma
+
+Comentários de código e documentação de arquitetura ficam em **português**; identificadores de
+código (entidades, campos, classes, métodos, namespaces, IDs) ficam em **inglês**, seguindo a
+convenção do próprio CAP/UI5.

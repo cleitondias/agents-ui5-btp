@@ -1,0 +1,32 @@
+schema: spec-driven
+
+context: |
+  Language: pt
+  All artifacts must be written in pt.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Os padrões de arquitetura e código do projeto estão em docs/patterns/<tecnologia>/ (cap,
+  fiori-elements, fiori-freestyle — só as que o projeto usa). Antes de escrever design ou tasks,
+  lê o README.md de cada pasta relevante para a change e segue a ordem de aplicação descrita lá.
+
+rules:
+  design:
+    - "Referencia os ficheiros de docs/patterns/ que fundamentam cada decisão; quando a change se afasta de um padrão, explica porquê."
+  tasks:
+    - "Ordena as tasks pela ordem de aplicação do README.md dos padrões da camada (ex.: CAP: schema.cds → services.cds → *BO.js → services.js → test/model/*BO.test.js)."
+    - "No CAP, cada task que cria ou altera um *BO.js inclui escrever os testes em test/model/<Entidade>BO.test.js (um ficheiro por modelo), seguindo docs/patterns/cap/testing.md. Não cries uma task de testes separada no fim."
+    - "Termina com uma task de verificação contra o checklist \"Ao terminar\" do README.md dos padrões usados."
+    - "Depois de escrever tasks.md (o último artefacto da proposta), corre `scripts/oflow.sh start <nome-da-change>`: cria a branch change/<nome-da-change> a partir da main atualizada e commita a proposta. Se essa branch já for a atual, o comando só commita as alterações da proposta."
+
+operations:
+  apply:
+    guidance:
+      - "Fluxo do projeto: 1 tarefa = 1 change = 1 branch change/<nome-da-change> = 1 MR."
+      - "A branch change/<nome-da-change> é criada no fim do propose. Antes de alterar código, confirma que é a branch atual; se não for (ex.: proposta escrita à mão), corre `scripts/oflow.sh start <nome-da-change>`."
+      - "Faz commit das alterações de código no fim de cada grupo de tasks, usando Conventional Commits."
+      - "No CAP (db/, srv/), escreve os testes durante cada task, no mesmo commit do código, em test/model/<Entidade>BO.test.js e seguindo docs/patterns/cap/testing.md. Nas apps Fiori (Elements ou Freestyle) não se exigem testes: o portão é só o lint; a lógica de negócio testável fica no CAP."
+      - "Depois de implementar e marcar todas as tasks, corre `scripts/oflow.sh validate`: corre o lint e os testes do projeto, confere as tasks e imprime um pré-prompt de auto-revisão da change (escopo, riscos e veredito). Corrige o que falhar e segue o pré-prompt, mostrando o veredito ao utilizador. Uma change com o validate a falhar ou com veredito Bloqueado não está pronta: corrige e volta a correr o validate."
+  archive:
+    guidance:
+      - "Antes de arquivar, garante que todo o código da change está commitado e que `scripts/oflow.sh check` passa (o publish volta a corrê-lo e falha se não passar)."
+      - "Depois de arquivar com sucesso, corre `scripts/oflow.sh publish` para commitar o archive, fazer push e abrir o MR no GitLab. Mostra ao utilizador o link do MR devolvido."

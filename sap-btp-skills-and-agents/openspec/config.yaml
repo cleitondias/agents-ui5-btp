@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Language: pt
+  All artifacts must be written in pt.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Este repositório é um kit distribuído por packs (packs/<pack>/), cada um com a estrutura exata
+  com que fica na raiz do projeto de destino; a CLI sap-btp-kit (bin/, lib/) monta e atualiza
+  projetos a partir deles, e scripts/new-project.sh é um atalho para o seu init.
+  packs/base vai sempre para o projeto. Uma change que altere um pack não deve criar links entre
+  packs diferentes, e deve verificar o resultado com scripts/new-project.sh num diretório temporário.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+rules:
+  tasks:
+    - "Depois de escrever tasks.md (o último artefacto da proposta), corre `scripts/oflow.sh start <nome-da-change>`: cria a branch change/<nome-da-change> a partir da main atualizada e commita a proposta. Se essa branch já for a atual, o comando só commita as alterações da proposta."
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
+
+operations:
+  apply:
+    guidance:
+      - "Fluxo do projeto: 1 tarefa = 1 change = 1 branch change/<nome-da-change> = 1 MR."
+      - "A branch change/<nome-da-change> é criada no fim do propose. Antes de alterar código, confirma que é a branch atual; se não for (ex.: proposta escrita à mão), corre `scripts/oflow.sh start <nome-da-change>`."
+      - "Faz commit das alterações de código no fim de cada grupo de tasks, usando Conventional Commits."
+  archive:
+    guidance:
+      - "Antes de arquivar, garante que todo o código da change está commitado."
+      - "Depois de arquivar com sucesso, corre `scripts/oflow.sh publish` para commitar o archive, fazer push e abrir o MR no GitLab. Mostra ao utilizador o link do MR devolvido."
