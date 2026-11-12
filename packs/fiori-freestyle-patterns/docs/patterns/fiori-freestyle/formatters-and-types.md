@@ -89,7 +89,7 @@ customEmailType: sap.ui.model.SimpleType.extend("email", {
 ```xml
 <Input value="{
   path: 'email',
-  type: 'inetum.mytemplate.utils.customTypes.customEmailType'
+  type: 'cgutech.mytemplate.utils.customTypes.customEmailType'
 }" />
 ```
 

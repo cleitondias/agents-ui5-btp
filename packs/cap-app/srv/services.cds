@@ -1,4 +1,4 @@
-using { inetum.template as db } from '../db/schema';
+using { cgutech.template as db } from '../db/schema';
 
 /**
  * Um service por perfil de acesso — ver docs/patterns/cap/service-layer.md.

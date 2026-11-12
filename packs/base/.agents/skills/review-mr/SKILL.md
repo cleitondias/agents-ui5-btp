@@ -16,7 +16,7 @@ Gera o pré-prompt de review do MR e segue-o.
 **Exemplo:**
 
 ```
-scripts/oflow.sh review https://git.pt-ibl-inetum.group/<grupo>/<projeto>/-/merge_requests/42
+scripts/oflow.sh review https://git.pt-ibl-cgutech.group/<grupo>/<projeto>/-/merge_requests/42
 ```
 
 **Notas:**

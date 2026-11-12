@@ -9,7 +9,7 @@ o conjunto de entidades e permissões que aquele perfil precisa, em vez de um ú
 "faz-tudo":
 
 ```cds
-using {inetum.<sigla> as db} from '../db/schema';
+using {cgutech.<sigla> as db} from '../db/schema';
 
 @path    : 'api/admin'
 @requires: 'authenticated-user'

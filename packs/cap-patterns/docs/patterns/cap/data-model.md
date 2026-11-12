@@ -9,7 +9,7 @@ Um único namespace por projeto, no formato `<empresa>.<sigla-do-projeto>`:
 ```cds
 using { sap, managed, Currency, Language } from '@sap/cds/common';
 
-namespace inetum.<sigla>;
+namespace cgutech.<sigla>;
 ```
 
 Todas as entidades de domínio vivem nesse namespace. `sap`, `managed`, `Currency` e `Language`
