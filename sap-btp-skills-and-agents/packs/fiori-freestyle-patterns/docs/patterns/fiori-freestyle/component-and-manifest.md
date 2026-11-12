@@ -4,17 +4,17 @@
 
 ## Namespace único por app
 
-Um namespace por projeto, no formato `<empresa>.<app>` (ex.: `inetum.mytemplate`), usado em
+Um namespace por projeto, no formato `<empresa>.<app>` (ex.: `cgutech.mytemplate`), usado em
 `sap.app.id`, no `viewPath` do roteamento e em todo `sap.ui.define` do `webapp/`:
 
 ```json
 {
-  "sap.app": { "id": "inetum.mytemplate" }
+  "sap.app": { "id": "cgutech.mytemplate" }
 }
 ```
 
 Todo módulo (`controller`, `view`, `fragment`, `model`) é referenciado por esse namespace completo
-(`inetum.mytemplate.controller.Home`), nunca por caminho relativo — mantém `sap.ui.define`,
+(`cgutech.mytemplate.controller.Home`), nunca por caminho relativo — mantém `sap.ui.define`,
 `Fragment.load` e `viewName` de rotas consistentes entre si.
 
 ## `Component.init`: ordem fixa de bootstrap
@@ -23,10 +23,10 @@ Todo módulo (`controller`, `view`, `fragment`, `model`) é referenciado por ess
 sap.ui.define([
   "sap/ui/core/UIComponent",
   "sap/ui/Device",
-  "inetum/mytemplate/model/models",
+  "cgutech/mytemplate/model/models",
   "sap/ui/model/json/JSONModel"
 ], function (UIComponent, Device, models, JSONModel) {
-  return UIComponent.extend("inetum.mytemplate.Component", {
+  return UIComponent.extend("cgutech.mytemplate.Component", {
     metadata: { manifest: "json" },
     init: async function () {
       UIComponent.prototype.init.apply(this, arguments);
@@ -60,7 +60,7 @@ de uma view, porque nenhuma view existe ainda) e resolver uma `Promise` só quan
 _initialiseUserContext: function () {
   return new Promise((resolve) => {
     this.oContextDialog = sap.ui.xmlfragment(
-      "inetum.mytemplate.view.fragments.SelectContext", this
+      "cgutech.mytemplate.view.fragments.SelectContext", this
     );
     this.oContextDialog.setModel(new JSONModel({ /* estado do form */ }), "userContext");
     this._resolveContextDialog = resolve;
@@ -95,7 +95,7 @@ view com dados de contexto ausentes.
     "models": {
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
-        "settings": { "bundleName": "inetum.mytemplate.i18n.i18n" }
+        "settings": { "bundleName": "cgutech.mytemplate.i18n.i18n" }
       },
       "main": {
         "dataSource": "main",
@@ -131,7 +131,7 @@ view com dados de contexto ausentes.
       "routerClass": "sap.m.routing.Router",
       "viewType": "XML",
       "async": true,
-      "viewPath": "inetum.mytemplate.view",
+      "viewPath": "cgutech.mytemplate.view",
       "controlAggregation": "pages",
       "controlId": "app"
     },

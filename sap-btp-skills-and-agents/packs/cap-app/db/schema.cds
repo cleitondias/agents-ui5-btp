@@ -1,6 +1,6 @@
 using { managed } from '@sap/cds/common';
 
-namespace inetum.template;
+namespace cgutech.template;
 
 /**
  * Entidade de exemplo, seguindo os padrões descritos em docs/patterns/cap/data-model.md:

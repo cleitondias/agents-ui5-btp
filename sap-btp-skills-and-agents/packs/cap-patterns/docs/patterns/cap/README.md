@@ -1,4 +1,4 @@
-# Patterns — SAP CAP (Inetum)
+# Patterns — SAP CAP (Cgutech)
 
 > Padrões de arquitetura e código para projetos SAP CAP.
 > Os exemplos usam entidades/nomes genéricos — não são referência a um projeto específico.

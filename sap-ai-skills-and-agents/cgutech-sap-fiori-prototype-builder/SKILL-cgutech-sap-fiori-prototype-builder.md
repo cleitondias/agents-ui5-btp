@@ -1,5 +1,5 @@
 ---
-name: inetum-sap-fiori-prototype-builder
+name: cgutech-sap-fiori-prototype-builder
 description: Cria protótipos navegáveis SAP Fiori a partir de requisitos funcionais para validação com usuários.
 user-invocable: true
 disable-model-invocation: false
